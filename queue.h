@@ -1,0 +1,7 @@
+class rrQueue {
+
+};
+
+class fcfsQueue {
+    
+};
