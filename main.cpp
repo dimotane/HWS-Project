@@ -46,6 +46,9 @@ int readFile(string filepath){
 }
 
 int main() {
+    Queue queues[100];
+    int tq;
+    
     string inputpath = "C:\\Users\\alois\\Documents\\MLQS\\input.txt";
     readFile(inputpath);
     return 0;
