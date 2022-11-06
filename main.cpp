@@ -4,7 +4,7 @@ using namespace std;
 #include <sstream>
 #include <string>
 #include <array>
-//#include "queueAndProcess.h"
+#include "queueAndProcess.h"
 
 //this function reads the input file and parses it into processes
 int readFile(string filepath){
@@ -36,8 +36,8 @@ int readFile(string filepath){
         if(burst<1 || priority <0 || priority>99 || io > burst){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
         }else{
-            Process process = new Process();
-            
+           // Process process = new Process();
+
         }
 
    }
