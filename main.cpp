@@ -10,16 +10,16 @@ using namespace std;
 int readFile(string filepath){
     ifstream InputFile(filepath); //read in the input file
     //--------------placeholders for while loop------------------
-     std::array<std::string, 6> colour{ "Blue", "Red",
-                                       "Orange", "Yellow" };
+     std::array<std::string, 6> pieces{ "", "",
+                                       "", "" , "", ""};
     string inputline; //input string
-    int pid;//P_ID
-    int burst; //Burst
-    int arrival;//arrival
-    int priority;//priority
-    int deadline;//deadline
-    int IO;//io
-    string piece;//where to hold each chunk 
+    // int pid;//P_ID
+    // int burst; //Burst
+    // int arrival;//arrival
+    // int priority;//priority
+    // int deadline;//deadline
+    // int IO;//io
+    
     char tab = '/t';
     //----------------------------------------------------------
 
@@ -31,11 +31,11 @@ int readFile(string filepath){
         stringstream stream(inputline);
 
         for(int i=0; i<6; i++){
-            if(getline(stream, piece, tab)){
-                getline(stream, piece, tab);
+            if(getline(stream, pieces[i], tab)){
+                getline(stream, pieces[i], tab); //get the next thing
             }
         }
-    cout << inputline;
+    cout << "this is a line from your array: " << pieces[0];
    }
 
     return 0;
