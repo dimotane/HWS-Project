@@ -38,3 +38,18 @@ void roundRobin(Queue* queue)
     queue->headProcess = temp;
     free(temp);
 }; 
+
+int executeProcess(Queue* queue, int tq)
+{
+    queue->currentProcess->burst -= tq;
+    if (queue->currentProcess->burst <= 0)
+    {
+        removeFromQueue(queue); 
+        return 1;
+    }
+    else 
+    {
+        roundRobin(queue);
+        return 0;
+    }
+}
