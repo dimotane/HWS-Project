@@ -14,6 +14,12 @@ class Process{
         string log; //empty string we can append to to log process history
         Process* next; //pointers for next and previous process in doubly linked list
         Process* prev;  
+    Process(int x,int y,int z)
+    {
+        pid = x;
+        burst = y;
+        priority = z;
+    }
 };
 
 void addToQueue(Process* inProcess, Queue* queue)
