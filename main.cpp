@@ -1,10 +1,10 @@
 using namespace std;
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <array>
-#include "process.h"
-#include "queue.h"
+#include "queueAndProcess.h"
 
 //this function reads the input file and parses it into processes
 int readFile(string filepath){
