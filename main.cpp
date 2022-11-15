@@ -7,7 +7,7 @@ using namespace std;
 #include "queueAndProcess.h"
 
 //this function reads the input file and parses it into processes
-int readFile(string filepath){
+int readFile(string filepath, Queue* queues){
     ifstream InputFile(filepath); //read in the input file
      array<string, 6> pieces{ "", "",
                                        "", "" , "", ""};
@@ -36,8 +36,9 @@ int readFile(string filepath){
         if(burst<1 || priority <0 || priority>99 || io > burst){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
         }else{
-            Process process = new Process();
-            
+           // Process process = new Process();
+            Process process = Process(pid, burst, priority);
+            addToQueue(&process, &queues[priority]);
         }
 
    }
@@ -50,7 +51,7 @@ int main() {
     int tq;
     
     string inputpath = "C:\\Users\\alois\\Documents\\MLQS\\input.txt";
-    readFile(inputpath);
+    readFile(inputpath, queues);
     return 0;
 };
 

@@ -19,6 +19,7 @@ class Process{
         pid = x;
         burst = y;
         priority = z;
+        basePriority = z;
     }
 };
 
