@@ -1,6 +1,12 @@
 using namespace std;
 #include <string>
-#include "queue.h"
+
+class Queue {
+    public:
+    Process* headProcess;
+    Process* currentProcess;
+    int size;
+};
 
 class Process{
     public:
@@ -13,15 +19,39 @@ class Process{
         pid = x;
         burst = y;
         priority = z;
+        basePriority = z;
     }
 };
+
+void addToQueue(Process* inProcess, Queue* queue)
+{
+    inProcess->next = queue->headProcess;
+    inProcess->prev = NULL;
+    queue->headProcess->prev = inProcess;
+    queue->size++;
+}
+
+void removeFromQueue(Queue* queue)
+{
+    queue->currentProcess = queue->currentProcess->prev;
+    queue->size--;
+}
+
+void roundRobin(Queue* queue)
+{
+    Process* temp = queue->currentProcess;
+    queue->currentProcess = queue->currentProcess->prev;
+    queue->headProcess->prev = temp;
+    queue->headProcess = temp;
+    free(temp);
+}; 
 
 int executeProcess(Queue* queue, int tq)
 {
     queue->currentProcess->burst -= tq;
     if (queue->currentProcess->burst <= 0)
     {
-        completeProcess(queue); 
+        removeFromQueue(queue); 
         return 1;
     }
     else 
