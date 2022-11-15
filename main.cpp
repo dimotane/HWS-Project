@@ -49,8 +49,9 @@ int readFile(string filepath, Queue* queues){
 int main() {
     Queue queues[100];
     int tq;
-    
-    string inputpath = "C:\\Users\\alois\\Documents\\MLQS\\input.txt";
+    cout << "Please enter the path to your input file:";
+    string inputpath;  //"C:\\Users\\alois\\Documents\\MLQS\\input.txt";
+    cin >> inputpath;
     readFile(inputpath, queues);
     return 0;
 };
