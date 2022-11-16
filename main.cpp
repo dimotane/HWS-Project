@@ -5,6 +5,7 @@ using namespace std;
 #include <string>
 #include <array>
 #include "queueAndProcess.h"
+#include "initQueues.h"
 
 //this function reads the input file and parses it into processes
 int readFile(string filepath, Queue* queues){
@@ -35,20 +36,38 @@ int readFile(string filepath, Queue* queues){
 
         if(burst<1 || priority <0 || priority>99 || io > burst){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
-        }else{
+        }
+        else{
            // Process process = new Process();
             Process process = Process(pid, burst, priority);
-            addToQueue(&process, &queues[priority]);
+            queues->add(&process);
         }
 
    }
 
     return 0;
 }
+int clockTick, tq, waitTime;
+Queue queues[100];
+
+int executeTick(){
+    for (int i = 99; i > 0; i--)
+    {
+        for (int i = 0; i < tq; i++)
+        {   
+            if (queues[i].hasProcess())
+            {
+                queues[i].executeProcess(clockTick);
+            }
+            else break;
+        }
+    }
+}
+
+
 
 int main() {
-    Queue queues[100];
-    int tq;
+    initQueues(queues); 
     cout << "Please enter the path to your input file:";
     string inputpath;  //"C:\\Users\\alois\\Documents\\MLQS\\input.txt";
     cin >> inputpath;
