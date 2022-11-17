@@ -1,11 +1,10 @@
-using namespace std;
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <array>
 #include "queueAndProcess.h"
-#include "rbtree.h"
+#include "redBlackTree.h"
 
 //this function reads the input file and parses it into processes
 int readFile(string filepath, Queue* queues){
@@ -34,7 +33,7 @@ int readFile(string filepath, Queue* queues){
         int deadline = stoi(pieces[4]);
         int io = stoi(pieces[5]); //parse strings as ints 
 
-        if(burst<1 || priority <0 || priority>99 || io > burst){
+        if(burst<1 || priority <0 || priority>99 || io > burst || arrival < 1){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
         }
         else{
@@ -49,8 +48,8 @@ int readFile(string filepath, Queue* queues){
 }
 int clockTick, tq, waitTime;
 Queue queues[100];
-rbtree processTree; 
-rbtree* treeAddr = &processTree;
+RBTree processTree; 
+RBTree* treeAddr = &processTree;
 
 int executeTick(){
     queues[processTree.maximum(treeAddr->getRoot())->priority].executeProcess(clockTick, tq);
