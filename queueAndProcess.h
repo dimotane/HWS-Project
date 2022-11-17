@@ -7,11 +7,22 @@ struct Process {
     std::string log; //empty string we can append to to log process history
     Process* next; //pointers for next and previous process in doubly linked list
     Process* prev;  
-    Process(int x,int y,int z)//constructor used to create and then insert processes
+    Process(int a,int b,int c)//constructor used to create and then insert processes
     {
-        pid = x;
-        burst = y;
-        priority = basePriority = z;
+        pid = a;
+        burst = b;
+        priority = basePriority = c;
+        next = prev = nullptr;
+        lastRun = 0;
+    }
+
+        Process(int a,int b,int c, int d, int e)//pid, burstm priority, arrival, io
+    {
+        pid = a;
+        burst = b;
+        priority = basePriority = c;
+        arrival = d;
+        io = e; 
         next = prev = nullptr;
         lastRun = 0;
     }

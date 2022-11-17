@@ -9,16 +9,15 @@
 //this function reads the input file and parses it into processes
 int readFile(string filepath, Queue* queues){
     ifstream InputFile(filepath); //read in the input file
-     array<string, 6> pieces{ "", "",
-                                       "", "" , "", ""};
+    array<string, 6> pieces{ "","","","","",""};
     string inputline; //input string
     char tab = '\t';
     int counter;
    
    getline(InputFile, inputline);//get rid of header line
-   while( getline(InputFile, inputline)){ //for the rest of the lines in the file, we do stuff to it:
+   while(getline(InputFile, inputline)){ //for the rest of the lines in the file, we do stuff to it:
         stringstream stream(inputline);//read in from current line
-         cout << "a line from your array: ";
+        cout << "a line from your array: ";
         counter = 0;
         while(!stream.eof()){
             getline(stream, pieces[counter], tab);
@@ -33,12 +32,13 @@ int readFile(string filepath, Queue* queues){
         int deadline = stoi(pieces[4]);
         int io = stoi(pieces[5]); //parse strings as ints 
 
-        if(burst<1 || priority <0 || priority>99 || io > burst || arrival < 1){
+        if (burst<1 || priority <0 || priority>99 || io > burst || arrival < 1){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
         }
-        else{
-           // Process process = new Process();
-            Process process = Process(pid, burst, priority);
+        else
+        {
+            //Process process = new Process();
+            Process process = Process(pid, burst, priority,arrival, io);
             queues->add(&process);
         } 
 
