@@ -6,6 +6,7 @@ using namespace std;
 #include <array>
 #include "queueAndProcess.h"
 #include "initQueues.h"
+#include "rbtree.h"
 
 //this function reads the input file and parses it into processes
 int readFile(string filepath, Queue* queues){
@@ -67,6 +68,7 @@ int executeTick(){
 
 
 int main() {
+    rbtree processTree; 
     initQueues(queues); 
     cout << "Please enter the path to your input file:";
     string inputpath;  //"C:\\Users\\alois\\Documents\\MLQS\\input.txt";

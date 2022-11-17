@@ -1,7 +1,8 @@
 using namespace std;
 #include <string>
+#include "rbtree.h"
 
-class Process{
+class Process {
     public:
         unsigned int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
         string log; //empty string we can append to to log process history
@@ -12,7 +13,7 @@ class Process{
         pid = x;
         burst = y;
         priority = basePriority = z;
-        next = prev = NULL;
+        next = prev = nullptr;
     }
 };
 
@@ -21,8 +22,6 @@ class Queue {
 
     Process* headProcess;//last in
     Process* currentProcess;//first in
-    //Queue* leftChild;
-    //Queue* rightChild;
     int size;//for keeping track of processes in queue
     int priority;//for purposes of navigating queue tree when inserting process
 
@@ -61,17 +60,10 @@ void Queue::add(Process* process){
     #endif
 }
 
-void reQueue(Process* process,Queue* queues[], int desiredPriority){
-    queues[desiredPriority]->add(process);
-    #ifdef DEBUG
-    temp->log += "re-queued process"
-    #endif
-}
-
 //remove completed process and return a pointer to the completed process
 Process* Queue::remove(){
     Process* temp = this->currentProcess;
-    this->currentProcess->prev->next = NULL;
+    this->currentProcess->prev->next = nullptr;
     this->currentProcess = this->currentProcess->prev;
     #ifdef DEBUG
     temp->log += "process completed, removing from queue"
@@ -80,32 +72,27 @@ Process* Queue::remove(){
 }
 
 bool Queue::hasProcess(){
-    return this->currentProcess!=NULL;
+    return this->currentProcess!=nullptr;
 }
 
 void Queue::executeProcess(int clockTick)
 {
     this->currentProcess->lastRun = clockTick;
+    this->currentProcess->burst -= 1;
+    if (this->currentProcess->burst == 0)
+    this->remove();  
 }
 
-/*
-//basic bitch binary search algorithm for our queue tree. 
-//doesn't need to be in the queue class.
-Queue* search(int desiredPriority, Queue* node){
-    if (node->priority == desiredPriority)
-    {
-        return node;
-    }
-    else if (node->priority >= desiredPriority)
-    {
-        return search(desiredPriority,node->leftChild);
-    }
-    else if (node->priority <= desiredPriority)
-    {
-        return search(desiredPriority,node->rightChild);
-    }
+void reQueue(Process* process,Queue* queues[], int desiredPriority){
+    process->prev->next = process->next;
+    process->next->prev = process->prev;
+    queues[desiredPriority]->add(process);
+    #ifdef DEBUG
+    temp->log += "re-queued process"
+    #endif
 }
-*/
+
+
 
 
 
