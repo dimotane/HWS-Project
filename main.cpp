@@ -5,7 +5,6 @@ using namespace std;
 #include <string>
 #include <array>
 #include "queueAndProcess.h"
-#include "initQueues.h"
 #include "rbtree.h"
 
 //this function reads the input file and parses it into processes
@@ -58,9 +57,8 @@ int executeTick(){
 }
 
 int main() {
-    initQueues(queues); 
     cout << "Please enter the path to your input file:";
-    string inputpath;  //"C:\\Users\\alois\\Documents\\MLQS\\input.txt";
+    string inputpath; //"input.txt";
     cin >> inputpath;
     readFile(inputpath, queues);
     return 0;
