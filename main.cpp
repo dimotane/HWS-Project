@@ -3,17 +3,19 @@
 #include <sstream>
 #include <string>
 #include <array>
+#include <vector>
 #include "queueAndProcess.h"
 #include "redBlackTree.h"
 
 //this function reads the input file and parses it into processes
-int readFile(string filepath, Queue* queues){
+vector<Process> readFile(string filepath){
+    vector<Process> pVector;
     ifstream InputFile(filepath); //read in the input file
     array<string, 6> pieces{ "","","","","",""};
     string inputline; //input string
     char tab = '\t';
     int counter;
-   
+
    getline(InputFile, inputline);//get rid of header line
    while(getline(InputFile, inputline)){ //for the rest of the lines in the file, we do stuff to it:
         stringstream stream(inputline);//read in from current line
@@ -38,14 +40,16 @@ int readFile(string filepath, Queue* queues){
         else
         {
             //Process process = new Process();
+            
             Process process = Process(pid, burst, priority,arrival, io);
-            queues->add(&process);
+            pVector.push_back(process); //add process to the end of the vector
         } 
 
    }
 
-    return 0;
+    return pVector;
 }
+
 int clockTick, tq, waitTime;
 Queue queues[100];
 RBTree processTree; 
@@ -55,11 +59,25 @@ int executeTick(){
     queues[processTree.maximum(treeAddr->getRoot())->priority].executeProcess(clockTick, tq);
 }
 
+bool processSort(Process* p1, Process* p2)
+{
+    return (p1->arrival < p2->arrival);
+}
+
+void vectorSort(vector<Process> vector){
+    sort(vector.begin(), vector.end(), processSort);
+}
+
 int main() {
     cout << "Please enter the path to your input file:";
     string inputpath; //"input.txt";
     cin >> inputpath;
-    readFile(inputpath, queues);
+    vector<Process> processes = readFile(inputpath); //read processes into a vector
+    vectorSort(processes); //sort based on arrival time
+
+    for(auto i = processes.begin(); i != processes.end(); i++){
+        cout << i->arrival + " ";
+    }
     return 0;
 };
 
