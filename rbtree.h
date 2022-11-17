@@ -4,7 +4,7 @@
 using namespace std;
 
 struct Node {
-  int proiority;
+  int priority;
   Node *parent;
   Node *left;
   Node *right;
@@ -19,7 +19,7 @@ class rbtree {
   NodePtr TNULL;
 
   void initializeNULLNode(NodePtr node, NodePtr parent) {
-    node->data = 0;
+    node->priority = 0;
     node->parent = parent;
     node->left = nullptr;
     node->right = nullptr;
@@ -29,7 +29,7 @@ class rbtree {
   // Preorder
   void preOrderHelper(NodePtr node) {
     if (node != TNULL) {
-      cout << node->data << " ";
+      cout << node->priority << " ";
       preOrderHelper(node->left);
       preOrderHelper(node->right);
     }
@@ -39,7 +39,7 @@ class rbtree {
   void inOrderHelper(NodePtr node) {
     if (node != TNULL) {
       inOrderHelper(node->left);
-      cout << node->data << " ";
+      cout << node->priority << " ";
       inOrderHelper(node->right);
     }
   }
@@ -49,16 +49,16 @@ class rbtree {
     if (node != TNULL) {
       postOrderHelper(node->left);
       postOrderHelper(node->right);
-      cout << node->data << " ";
+      cout << node->priority << " ";
     }
   }
 
   NodePtr searchTreeHelper(NodePtr node, int key) {
-    if (node == TNULL || key == node->data) {
+    if (node == TNULL || key == node->priority) {
       return node;
     }
 
-    if (key < node->data) {
+    if (key < node->priority) {
       return searchTreeHelper(node->left, key);
     }
     return searchTreeHelper(node->right, key);
@@ -140,11 +140,11 @@ class rbtree {
     NodePtr z = TNULL;
     NodePtr x, y;
     while (node != TNULL) {
-      if (node->data == key) {
+      if (node->priority == key) {
         z = node;
       }
 
-      if (node->data <= key) {
+      if (node->priority <= key) {
         node = node->right;
       } else {
         node = node->left;
@@ -244,14 +244,14 @@ class rbtree {
       }
 
       string sColor = root->color ? "RED" : "BLACK";
-      cout << root->data << "(" << sColor << ")" << endl;
+      cout << root->priority << "(" << sColor << ")" << endl;
       printHelper(root->left, indent, false);
       printHelper(root->right, indent, true);
     }
   }
 
    public:
-  RedBlackTree() {
+  rbtree() {
     TNULL = new Node;
     TNULL->color = 0;
     TNULL->left = nullptr;
@@ -261,6 +261,13 @@ class rbtree {
 
   NodePtr searchTree(int k) {
     return searchTreeHelper(this->root, k);
+  }
+
+  NodePtr minimum(NodePtr node) {
+  while (node->left != TNULL) {
+    node = node->left;
+  }
+  return node;
   }
 
   NodePtr maximum(NodePtr node) {
@@ -337,7 +344,7 @@ class rbtree {
   void insert(int key) {
     NodePtr node = new Node;
     node->parent = nullptr;
-    node->data = key;
+    node->priority = key;
     node->left = TNULL;
     node->right = TNULL;
     node->color = 1;
@@ -347,7 +354,7 @@ class rbtree {
 
     while (x != TNULL) {
       y = x;
-      if (node->data < x->data) {
+      if (node->priority < x->priority) {
         x = x->left;
       } else {
         x = x->right;
@@ -357,7 +364,7 @@ class rbtree {
     node->parent = y;
     if (y == nullptr) {
       root = node;
-    } else if (node->data < y->data) {
+    } else if (node->priority < y->priority) {
       y->left = node;
     } else {
       y->right = node;
@@ -379,8 +386,8 @@ class rbtree {
     return this->root;
   }
 
-  void deleteNode(int data) {
-    deleteNodeHelper(this->root, data);
+  void deleteNode(int priority) {
+    deleteNodeHelper(this->root, priority);
   }
 
   void printTree() {
