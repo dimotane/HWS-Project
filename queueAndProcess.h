@@ -1,12 +1,10 @@
-using namespace std;
 #include <string>
 #include <algorithm>  
-#include "rbtree.h"
 
 class Process {
     public:
         unsigned int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
-        string log; //empty string we can append to to log process history
+        std::string log; //empty string we can append to to log process history
         Process* next; //pointers for next and previous process in doubly linked list
         Process* prev;  
     Process(int x,int y,int z)//constructor used to create and then insert processes
@@ -122,7 +120,8 @@ void demote(Process* process, Queue* queues[], unsigned int offset){
 //returns pointer to an array containing all processes whose age is greater than int old
 int* Queue::findAgedProcesses(int old)
 {
-
+    int* blah = 0;
+    return blah;
 }
 
 
