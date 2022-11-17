@@ -1,5 +1,6 @@
 using namespace std;
 #include <string>
+#include <algorithm>  
 #include "rbtree.h"
 
 class Process {
@@ -36,13 +37,12 @@ class Queue {
     //method for re-queueing a process into a new priority queue
     void reQueue(Process* process, int desiredPriority);
     //method to remove process from the bottom of a queue on completion
-    Process* remove();
+    Process* complete();
     //method to "execute" processes by subtracting 1 from burst and checking if done
-    void executeProcess(int clockTick);
+    Process* executeProcess(int clockTick, int tq);
     //simple method to see if there is a process in the queue
     bool hasProcess();
 };
-
 
 void Queue::add(Process* process){
     if (!this->hasProcess())
@@ -56,17 +56,18 @@ void Queue::add(Process* process){
     this->headProcess = process;
     }
     #ifdef DEBUG
-    temp->log += "Added process"
+    temp->log += "Added process " + process.pid + " to queue " + this->priority 
     #endif
 }
 
 //remove completed process and return a pointer to the completed process
-Process* Queue::remove(){
+Process* Queue::complete(){
     Process* temp = this->currentProcess;
     this->currentProcess->prev->next = nullptr;
     this->currentProcess = this->currentProcess->prev;
     #ifdef DEBUG
-    temp->log += "process completed, removing from queue"
+    temp->log += "process " + process->pid " completed, removing from queue \n"
+    cout <<< process->log 
     #endif
     return temp;
 }
@@ -75,23 +76,37 @@ bool Queue::hasProcess(){
     return this->currentProcess!=nullptr;
 }
 
-void Queue::executeProcess(int clockTick)
+Process* Queue::executeProcess(int clockTick, int tq)
 {
     this->currentProcess->lastRun = clockTick;
-    this->currentProcess->burst -= 1;
-    if (this->currentProcess->burst == 0)
-    this->remove();  
+    this->currentProcess->burst -= tq;
+    return (this->currentProcess->burst == 0 ? nullptr : this->currentProcess);
 }
 
-void reQueue(Process* process,Queue* queues[], int desiredPriority){
+void reQueue(Process* process, Queue* queues[], int desiredPriority){
     process->prev->next = process->next;
     process->next->prev = process->prev;
     queues[desiredPriority]->add(process);
     #ifdef DEBUG
-    temp->log += "re-queued process"
+    process->log += "re-queued process " + process->pid + " to new priority " + desiredPriority + "\n";
     #endif
 }
 
+void promote(Process* process, Queue* queues[], unsigned int offset){
+    bool kernel = (process->basePriority >=50 ? true : false);
+    int newPriority = (kernel) ? max(process->priority+offset, (unsigned) 99) : max(process->priority+offset, (unsigned) 50);
+    reQueue(process, queues, newPriority);
+}
+
+void demote(Process* process, Queue* queues[], unsigned int offset){
+    int newPriority = max(process->basePriority, process->priority-offset);
+    reQueue(process, queues, newPriority);
+}
+
+int* findAgedProcesses(Queue* queue)
+{
+
+}
 
 
 

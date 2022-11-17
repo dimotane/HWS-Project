@@ -42,7 +42,7 @@ int readFile(string filepath, Queue* queues){
            // Process process = new Process();
             Process process = Process(pid, burst, priority);
             queues->add(&process);
-        }
+        } 
 
    }
 
@@ -50,25 +50,14 @@ int readFile(string filepath, Queue* queues){
 }
 int clockTick, tq, waitTime;
 Queue queues[100];
+rbtree processTree; 
+rbtree* treeAddr = &processTree;
 
 int executeTick(){
-    for (int i = 99; i > 0; i--)
-    {
-        for (int i = 0; i < tq; i++)
-        {   
-            if (queues[i].hasProcess())
-            {
-                queues[i].executeProcess(clockTick);
-            }
-            else break;
-        }
-    }
+    queues[processTree.maximum(treeAddr->getRoot())->priority].executeProcess(clockTick, tq);
 }
 
-
-
 int main() {
-    rbtree processTree; 
     initQueues(queues); 
     cout << "Please enter the path to your input file:";
     string inputpath;  //"C:\\Users\\alois\\Documents\\MLQS\\input.txt";
