@@ -57,15 +57,14 @@ RBTree* treeAddr = &processTree;
 
 int executeTick(){
     queues[processTree.maximum(treeAddr->getRoot())->priority].executeProcess(clockTick, tq);
+    return 0;
 }
 
-bool processSort(Process* p1, Process* p2)
+bool processSort(Process p1, Process p2) //check if one is bigger than the other
 {
-    return (p1->arrival < p2->arrival);
-}
-
-void vectorSort(vector<Process> vector){
-    sort(vector.begin(), vector.end(), processSort);
+    int a1 = p1.arrival;
+    int a2 = p2.arrival;
+    return (a1<a2);
 }
 
 int main() {
@@ -73,10 +72,12 @@ int main() {
     string inputpath; //"input.txt";
     cin >> inputpath;
     vector<Process> processes = readFile(inputpath); //read processes into a vector
-    vectorSort(processes); //sort based on arrival time
+    sort(processes.begin(), processes.end(), processSort);; //sort based on arrival time
 
-    for(auto i = processes.begin(); i != processes.end(); i++){
-        cout << i->arrival + " ";
+    Process p;
+    for(int i = 0; i < processes.size(); i++){
+        p = processes.at(i);
+        cout << " arrival: " << p.arrival << " pid: " << p.pid << endl;
     }
     return 0;
 };
