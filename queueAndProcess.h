@@ -26,6 +26,17 @@ struct Process {
         next = prev = nullptr;
         lastRun = 0;
     }
+
+    Process() //default constructor for process because we need one apparently
+    {
+        pid = 0;
+        burst = 0;
+        priority = basePriority = 0;
+        arrival = 0;
+        io = 0; 
+        next = prev = nullptr;
+        lastRun = 0;
+    }
 };
 
 typedef Process* processPtr;
