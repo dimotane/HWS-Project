@@ -22,6 +22,7 @@ class RBTree {
 private:
 	NodePtr root;
 	NodePtr TNULL;
+	int size; 
 
 	// initializes the nodes with appropirate values
 	// all the pointers are set to point to the null pointer
@@ -305,6 +306,10 @@ public:
 		return searchTreeHelper(this->root, k);
 	}
 
+	int getSize(){
+		return size; 
+	}
+	
 	// find the node with the minimum key
 	NodePtr minimum(NodePtr node) {
 		while (node->left != TNULL) {
@@ -410,6 +415,8 @@ public:
 		NodePtr y = nullptr;
 		NodePtr x = this->root;
 
+		size++;
+
 		while (x != TNULL) {
 			y = x;
 			if (node->priority < x->priority) {
@@ -450,6 +457,7 @@ public:
 
 	// delete the node from the tree
 	void deleteNode(int priority) {
+		size--;
 		deleteNodeHelper(this->root, priority);
 	}
 

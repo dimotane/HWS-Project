@@ -6,17 +6,9 @@ struct Process {
     unsigned int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
     std::string log; //empty string we can append to to log process history
     Process* next; //pointers for next and previous process in doubly linked list
-    Process* prev;  
-    Process(int a,int b,int c)//constructor used to create and then insert processes
-    {
-        pid = a;
-        burst = b;
-        priority = basePriority = c;
-        next = prev = nullptr;
-        lastRun = 0;
-    }
+    Process* prev;
 
-        Process(int a,int b,int c, int d, int e)//pid, burstm priority, arrival, io
+    Process(int a,int b,int c, int d, int e)//pid, burst, priority, arrival, io
     {
         pid = a;
         burst = b;
@@ -26,14 +18,12 @@ struct Process {
         next = prev = nullptr;
         lastRun = 0;
     }
-
-    Process() //default constructor for process because we need one apparently
+    Process() //default constructor for process
     {
         pid = 0;
         burst = 0;
         priority = basePriority = 0;
         arrival = 0;
-        io = 0; 
         next = prev = nullptr;
         lastRun = 0;
     }
@@ -41,28 +31,32 @@ struct Process {
 
 typedef Process* processPtr;
 
+
 //Class defining the first and last element in a linked list queue of processes
 class Queue {
     public:
-    processPtr headProcess;//last in
+    processPtr lastProcess;//last in
     processPtr currentProcess;//first in
     int size;//for keeping track of # of processes in queue
+    int priority;//for keeping track of active queues
 
-    Queue()//constructor used to instatiate default values in queue
+    Queue(int p)//constructor used to instatiate default values in queue
     {
-        currentProcess = headProcess = nullptr;
+        currentProcess = lastProcess = nullptr;
+        size = 0;
+        priority = p;
     }
 
     //methods for the queue class are as follows
 
     //method for adding a new process to the queue
-    void add(processPtr process);
+    bool add(processPtr process);
     //method for re-queueing a process into a new priority queue
     void reQueue(processPtr process,Queue* queues[], int desiredPriority);
     //method to remove process from the bottom of a queue on completion
-    processPtr complete();
+    bool complete();
     //method to "execute" processes by subtracting 1 from burst and checking if done
-    int executeProcess(int clockTick, int tq);
+    bool executeProcess(int clockTick);
     //method which returns a pointer to an array containing pointers of all processes
     //whose age > int age 
     int * findAgedProcesses(int old);
@@ -70,31 +64,38 @@ class Queue {
     bool hasProcess();
 };
 
-void Queue::add(processPtr process){
+bool Queue::add(processPtr process){
     if (size==0)
     {//if queue is empty, all we need to do is set its current process to the new one
-        currentProcess = headProcess = process;
+        currentProcess = lastProcess = process;
     }
     else
     { //otherwise we need to change the head process and add the node to the DLL
-    process->next = headProcess;
-    headProcess->prev = process;
-    headProcess = process;
+    process->next = lastProcess;
+    lastProcess->prev = process;
+    lastProcess = process;
     }
     size++;
     #ifdef DEBUG
     #endif
+    return currentProcess->prev == nullptr; 
 }
 
 //remove completed process and return a pointer to the completed process
-processPtr Queue::complete(){
-    processPtr temp = currentProcess;
-    currentProcess->prev->next = nullptr;
-    currentProcess = currentProcess->prev;
+bool Queue::complete(){
+    if (currentProcess->prev != nullptr)
+    {
+        currentProcess->prev->next = nullptr;
+        currentProcess = currentProcess->prev;
+    }
+    else
+    {
+        lastProcess = currentProcess = nullptr;
+    }
     #ifdef DEBUG
     #endif
     size--;
-    return temp;
+    return currentProcess->prev == nullptr;
 }
 
 //self explanitory 
@@ -104,16 +105,20 @@ bool Queue::hasProcess(){
 
 //very simply decriments burst of process, logic for process completing/not completing
 //is handled in the function that calls executeProcess
-int Queue::executeProcess(int clockTick, int tq)
+bool Queue::executeProcess(int clockTick)
 {
     currentProcess->lastRun = clockTick; //update lastrun of process
-    currentProcess->burst -= tq;//subtract 
-    return currentProcess->burst;//return remaining burst time. 
+    currentProcess->burst -= 1;//subtract 
+    return currentProcess->burst == 0;  //return true if process completes
 }
 
 void reQueue(processPtr process, Queue* queues[], int desiredPriority){
+    if (process->prev != nullptr){
     process->prev->next = process->next;//link previous process to next process
-    process->next->prev = process->prev;//vice versa 
+    }
+    if (process->prev != nullptr){
+    process->prev->next = process->prev;//vice versa 
+    }
     process->next = process->prev = nullptr; //reset pointers of process to null
     queues[process->priority]->size--;//decriment size of queue process is in by 1
     queues[desiredPriority]->add(process);//add old process to new queue
@@ -121,17 +126,46 @@ void reQueue(processPtr process, Queue* queues[], int desiredPriority){
     #endif
 }
 
+void roundRobin(Queue* queue)
+{
+    if (queue->size == 1 )
+    {
+        return;
+    }
+    else 
+    {
+        processPtr temp = queue->currentProcess;
+        queue->currentProcess = temp->prev;
+        temp->next = queue->lastProcess;
+        queue->lastProcess = temp; 
+    }
+}
+
 //promote a given process by an offset
 void promote(processPtr process, Queue* queues[], unsigned int offset){
     bool kernel = (process->basePriority >=50 ? true : false);
     int newPriority = (kernel) ? std::max(process->priority+offset, (unsigned) 99) : std::max(process->priority+offset, (unsigned) 50);
-    reQueue(process, queues, newPriority);
+    if (newPriority == process->priority)
+    {
+        roundRobin(queues[process->priority]);
+    }
+    else
+    {
+        reQueue(process, queues, newPriority);
+    }
 }
 
 //demote a given process by an offset
 void demote(processPtr process, Queue* queues[], unsigned int offset){
     int newPriority = std::max(process->basePriority, process->priority-offset);
-    reQueue(process, queues, newPriority);
+    if (newPriority == process->priority)
+    {
+        roundRobin(queues[process->priority]);
+    }
+    else
+    {
+        reQueue(process, queues, newPriority);
+    }
 }
 
 //returns pointer to an array containing all processes whose age is greater than int old
