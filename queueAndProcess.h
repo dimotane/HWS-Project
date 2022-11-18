@@ -1,6 +1,9 @@
 #include <string>
+#include <iostream>
 #include <algorithm>  
 
+#define DEBUG
+#define DEBUG1
 //Class defining a process, contains all its info
 struct Process {
     unsigned int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
@@ -76,8 +79,8 @@ bool Queue::add(processPtr process){
     lastProcess = process;
     }
     size++;
-    #ifdef DEBUG
-    std::cout << "Added process PID:" << process->pid  << " to queue " << priority << " on clock tick " << process->arrival <<std::endl;
+    #ifdef DEBUG1
+    std::cout << "Process PID:" << process->pid  << " added to queue " << priority << ". Queue is now of size " << size << " on clock tick " << process->arrival <<std::endl;
     #endif
     return currentProcess->prev == nullptr; 
 }
@@ -86,7 +89,7 @@ bool Queue::add(processPtr process){
 bool Queue::complete(){
     bool solo = false;
     #ifdef DEBUG
-    std::cout << "Process PID:" << currentProcess << " completed in queue " << priority << ". Queue is now of size " << size << std::endl;
+    std::cout << "Process PID:" << currentProcess->pid << " completed in queue " << priority;
     #endif
     if (size > 1)
     {
@@ -99,6 +102,7 @@ bool Queue::complete(){
         solo = true;
     }
     size--;
+    std::cout << ". Queue is now of size " << size;
     return solo;
 }
 
@@ -122,16 +126,13 @@ void reQueue(processPtr process, Queue* queues[], int desiredPriority){
     queues[process->priority]->size--;//decriment size of queue process is in by 1
     queues[desiredPriority]->add(process);//add old process to new queue
     #ifdef DEBUG//console output for debugging and logging
+    std::cout << "Procces PID:" << process->pid <<" re-queued to new queue " << desiredPriority; 
     #endif
 }
 
 void roundRobin(Queue* queue)
 {
-    if (queue->size == 1 )
-    {
-        return;
-    }
-    else 
+    if (queue->size > 1)
     {
         processPtr tempLast = queue->currentProcess;
         queue->currentProcess->prev->next = nullptr; 
@@ -139,6 +140,9 @@ void roundRobin(Queue* queue)
         tempLast->next = queue->lastProcess;
         queue->lastProcess->prev = tempLast;
     }
+    #ifdef DEBUG
+    std::cout << "Process PID:" << queue->currentProcess->pid << " round-robin in queue " << queue->priority << " of size " << queue->size;
+    #endif
 }
 
 //promote a given process by an offset
