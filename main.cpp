@@ -56,7 +56,8 @@ bool processSort(Process p1, Process p2) //check if one is bigger than the other
 unsigned int clockTick = 1;
 unsigned int tq = 1; 
 unsigned int activeQueue;
-int cputime = 0;
+unsigned int totalProcesses; 
+int cputime = 0; 
 RBTree activeTree; 
 Node* root;
 RBTree* treeAddr = &activeTree;
@@ -73,66 +74,63 @@ int main() {
     cout << "Sorting " << processes.size() << " processes" << endl;
     sort(processes.begin(), processes.end(), processSort);; //sort based on arrival time
 
-    for (int i = 0; i < 99; i++)
+    for (int i = 0; i <= 99; i++)
     {//set up all the queues 
         queues[i] = new Queue(i);
         queues[i]->priority = i;
     }
 
+    //object used for inserting processes
     Process p;
 
     cout << "Starting Clock and Beginning HWS" << endl;
-    while(true)
-    {
-        if (activeTree.getSize() == 0 && clockTick > 100)
-        {
-            break;
-        }
-
+    while(!(activeTree.getSize() == 0 && clockTick > 100))
+    {   //update the pointer to the last process in the sorted vector
         processPtr last = &processes.back();
-
+        //insert processes whose arrival time matches current clock tick
         while (last->arrival == clockTick)
-        {
+        {//this handles the logic for adding a node the an empty tree
             if(queues[last->priority]->add(last))
-            {
+            {//add priority queue to active tree if it was previously empty
                 activeTree.insert(last->priority);
                 root = activeTree.getRoot();
             }
-            activeTree.prettyPrint();
+            //activeTree.prettyPrint();
             processes.pop_back();
             last = &processes.back();
         }
+         
 
+        //this checks the tree each tick for the highest priority active queue
         int highest = activeTree.maximum(root)->priority;
-        if (clockTick == 1)
-        {
-            activeQueue = highest;
-        }
+        //if this is the first clock tick, set the active queue to the highest
+        activeQueue = (clockTick == 1) ? highest : activeQueue;
 
-        if (!(cputime == tq))
-        {
+        if (!(cputime == tq))//if process has not used up its tq 
+        {   //execute one tick of current process and see if it completes
             if(queues[activeQueue]->executeProcess(clockTick))
-            {
+            {//if it completes, see if it was the only process in queue
                 if(queues[activeQueue]->complete())
-                {
+                {//if it was alone in queue, remove the priority from the active tree
                     activeTree.deleteNode(queues[activeQueue]->priority);
-                    cputime = 0;
-                    root = activeTree.getRoot();
+                    cputime = -1;//reset cpu time
+                    root = activeTree.getRoot();//update root of active tree
                 }
                 activeQueue = highest;
+                //update highest priority queue
             }
         }
-        else 
+        else//demote process by time spent in cpu, it used up its tq
         {
             demote(queues[activeQueue]->currentProcess, queues, cputime);
-            activeQueue = highest;
-            cputime = -1;
+            activeQueue = highest;//make the active queue the highest priority 
+            cputime = -1;//set to -1 to reset to 0 once cputime++ occurs
         }
-        cputime++; 
+        cputime++; //increment cpu time and clock tick 
         clockTick++;
     }
 
-
+    cout << "HWS Simulation complete. Simulated " << totalProcesses << " using " << clockTick << " clock ticks." << endl;
     return 0;
 };
 
