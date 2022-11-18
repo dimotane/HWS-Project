@@ -320,6 +320,10 @@ public:
 
 	// find the node with the maximum key
 	NodePtr maximum(NodePtr node) {
+		if (node == TNULL)
+		{
+			return NULL;
+		}
 		while (node->right != TNULL) {
 			node = node->right;
 		}

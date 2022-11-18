@@ -7,6 +7,8 @@
 #include "queueAndProcess.h"
 #include "redBlackTree.h"
 
+#define DEBUG
+
 //this function reads the input file and parses it into processes
 vector<Process> readFile(string filepath){
     vector<Process> pVector;
@@ -64,6 +66,11 @@ RBTree* treeAddr = &activeTree;
 Queue * queues[100];
 typedef Process* processPtr;
 
+void updateActive()//sets activequeue to highest active queue, or null if there are no queues
+{
+    activeQueue = (activeTree.maximum(root) == NULL) ? NULL : (activeTree.maximum(root)->priority);
+}
+
 int main() {
     cout << "Please enter the path to your input file:";
     string inputpath; //"input.txt";
@@ -71,7 +78,7 @@ int main() {
 
     cout << "Reading input file" << endl;
     vector<Process> processes = readFile(inputpath); //read processes into a vector
-    cout << "Sorting " << processes.size() << " processes" << endl;
+    cout << "Sorting " << processes.size() << " valid processes" << endl;
     sort(processes.begin(), processes.end(), processSort);; //sort based on arrival time
 
     for (int i = 0; i <= 99; i++)
@@ -84,11 +91,11 @@ int main() {
     Process p;
 
     cout << "Starting Clock and Beginning HWS" << endl;
-    while(!(activeTree.getSize() == 0 && clockTick > 100))
+    while(!(activeQueue == NULL && clockTick != 1))
     {   //update the pointer to the last process in the sorted vector
         processPtr last = &processes.back();
         //insert processes whose arrival time matches current clock tick
-        while (last->arrival == clockTick)
+        while (last->arrival == clockTick && last != nullptr)
         {//this handles the logic for adding a node the an empty tree
             if(queues[last->priority]->add(last))
             {//add priority queue to active tree if it was previously empty
@@ -116,14 +123,14 @@ int main() {
                     cputime = -1;//reset cpu time
                     root = activeTree.getRoot();//update root of active tree
                 }
-                activeQueue = highest;
+                updateActive();
                 //update highest priority queue
             }
         }
         else//demote process by time spent in cpu, it used up its tq
         {
             demote(queues[activeQueue]->currentProcess, queues, cputime);
-            activeQueue = highest;//make the active queue the highest priority 
+            updateActive();
             cputime = -1;//set to -1 to reset to 0 once cputime++ occurs
         }
         cputime++; //increment cpu time and clock tick 

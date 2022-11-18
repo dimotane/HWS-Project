@@ -59,11 +59,11 @@ class Queue {
     bool executeProcess(int clockTick);
     //method which returns a pointer to an array containing pointers of all processes
     //whose age > int age 
-    int * findAgedProcesses(int old);
+    int findAgedProcesses(int old);
     //simple method to see if there is a process in the queue
-    bool hasProcess();
 };
 
+//adds a process to queue, returns true if the queue was previously empty, false otherwise
 bool Queue::add(processPtr process){
     if (size==0)
     {//if queue is empty, all we need to do is set its current process to the new one
@@ -77,13 +77,18 @@ bool Queue::add(processPtr process){
     }
     size++;
     #ifdef DEBUG
+    std::cout << "Added process PID:" << process->pid  << " to queue " << priority << " on clock tick " << process->arrival <<std::endl;
     #endif
     return currentProcess->prev == nullptr; 
 }
 
-//remove completed process and return a pointer to the completed process
+//remove the current process from a given queue. returns true if it was the only process in queue.
 bool Queue::complete(){
-    if (currentProcess->prev != nullptr)
+    bool solo = false;
+    #ifdef DEBUG
+    std::cout << "Process PID:" << currentProcess << " completed in queue " << priority << ". Queue is now of size " << size << std::endl;
+    #endif
+    if (size > 1)
     {
         currentProcess->prev->next = nullptr;
         currentProcess = currentProcess->prev;
@@ -91,20 +96,13 @@ bool Queue::complete(){
     else
     {
         lastProcess = currentProcess = nullptr;
+        solo = true;
     }
-    #ifdef DEBUG
-    #endif
     size--;
-    return currentProcess->prev == nullptr;
+    return solo;
 }
 
-//self explanitory 
-bool Queue::hasProcess(){
-    return currentProcess!=nullptr;
-}
-
-//very simply decriments burst of process, logic for process completing/not completing
-//is handled in the function that calls executeProcess
+//decriments burst by 1 and returns true only if burst reaches 0
 bool Queue::executeProcess(int clockTick)
 {
     currentProcess->lastRun = clockTick; //update lastrun of process
@@ -112,12 +110,13 @@ bool Queue::executeProcess(int clockTick)
     return currentProcess->burst == 0;  //return true if process completes
 }
 
+//insert a given process
 void reQueue(processPtr process, Queue* queues[], int desiredPriority){
     if (process->prev != nullptr){
     process->prev->next = process->next;//link previous process to next process
     }
-    if (process->prev != nullptr){
-    process->prev->next = process->prev;//vice versa 
+    if (process->next != nullptr){
+    process->next->prev = process->prev;//vice versa 
     }
     process->next = process->prev = nullptr; //reset pointers of process to null
     queues[process->priority]->size--;//decriment size of queue process is in by 1
@@ -134,42 +133,29 @@ void roundRobin(Queue* queue)
     }
     else 
     {
-        processPtr temp = queue->currentProcess;
-        queue->currentProcess = temp->prev;
-        temp->next = queue->lastProcess;
-        queue->lastProcess = temp; 
+        processPtr tempLast = queue->currentProcess;
+        queue->currentProcess->prev->next = nullptr; 
+        queue->currentProcess = queue->currentProcess->prev;
+        tempLast->next = queue->lastProcess;
+        queue->lastProcess->prev = tempLast;
     }
 }
 
 //promote a given process by an offset
 void promote(processPtr process, Queue* queues[], unsigned int offset){
-    bool kernel = (process->basePriority >=50 ? true : false);
-    int newPriority = (kernel) ? std::max(process->priority+offset, (unsigned) 99) : std::max(process->priority+offset, (unsigned) 50);
-    if (newPriority == process->priority)
-    {
-        roundRobin(queues[process->priority]);
-    }
-    else
-    {
-        reQueue(process, queues, newPriority);
-    }
+    bool kernel = (process->basePriority >=50 ? true : false);//determine if kernel or user process
+    int newPriority = (kernel) ? std::max(process->priority+offset, (unsigned) 99) : std::max(process->priority+offset, (unsigned) 50);//big complicated statement that basically finds the new priority
+    (newPriority == process->priority) ? roundRobin(queues[process->priority]) : reQueue(process, queues, newPriority);//if new priority is the same as the old priority, roundrobin, else requeue
 }
 
 //demote a given process by an offset
 void demote(processPtr process, Queue* queues[], unsigned int offset){
-    int newPriority = std::max(process->basePriority, process->priority-offset);
-    if (newPriority == process->priority)
-    {
-        roundRobin(queues[process->priority]);
-    }
-    else
-    {
-        reQueue(process, queues, newPriority);
-    }
+    int newPriority = std::max(process->basePriority, process->priority-offset);//kernel/user need not apply since a process cannot deomte past its base priority
+    (newPriority == process->priority) ? roundRobin(queues[process->priority]) : reQueue(process, queues, newPriority);//round robin if same priority, else requeue
 }
 
-//returns pointer to an array containing all processes whose age is greater than int old
-int* Queue::findAgedProcesses(int old)
+//promotes all aged processes in a given queue and returns number of processes promoted
+int Queue::findAgedProcesses(int old)
 {
     return 0;
 }
