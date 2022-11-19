@@ -42,7 +42,42 @@ vector<Process> readFile(string filepath){
             Process process = Process(pid, burst, priority, arrival, io);
             pVector.push_back(process); //add process to the end of the vector
         } 
-   }
+   }//that's everything for the file
+   bool exit = false;
+    string response;
+    while(!exit){
+        cout << "\nWould you like to manually enter another process?\n type \"yes\" to enter a process, or type \"no\" to continue. ";
+        cin >> response;
+        if(response.compare("Yes") == 0 || response.compare("yes") == 0 || response.compare("YES") == 0){
+            //do the intake code
+            cout << "Please enter process ID, burst, arrival, priority, deadline, and I/O separated by spaces: ";
+            cin >> inputline;
+            counter = 0;
+            istringstream iss(inputline); //read the input string
+            while(!iss.eof()){
+            getline(iss, pieces[counter]);
+            counter++;
+        } //this while loop parses 1 process into 6 strings
+
+        int pid = stoi(pieces[0]);
+        int burst = stoi(pieces[1]);
+        int arrival = stoi(pieces[2]);
+        int priority = stoi(pieces[3]);
+        int deadline = stoi(pieces[4]);
+        int io = stoi(pieces[5]); //parse strings as ints 
+
+        if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1){
+            cout << "\nThis process is invalid."; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
+        }else{
+        Process process = Process(pid, burst, priority, arrival, io);
+        pVector.push_back(process); //add process to the end of the vector
+        }
+        }else if (response.compare("No") == 0 || response.compare("no") == 0 || response.compare("NO") == 0){
+            exit = true; //continue
+        }else{
+            cout << "\nPlease only type \"yes\" or \"no\". ";
+        }
+    }
     return pVector;
 }
 
@@ -84,6 +119,7 @@ int main() {
 
     cout << "Reading input file" << endl;
     vector<Process> processes = readFile(inputpath); //read processes into a vector
+    
     cout << "Sorting " << processes.size() << " valid processes...";
     sort(processes.begin(), processes.end(), processSort); //sort based on arrival time
     cout << "Done!" << endl;
