@@ -2,14 +2,14 @@
 #include <iostream>
 #include <algorithm>  
 
-//#define DEBUG //normal debuggind for process completion and rescheduling
-//#define DEBUG1 //additional level of debugging which shows processes arriving
-//#define DEBUG2 //enables output for each burst and queue printing
+#define DEBUG //normal debuggind for process completion and rescheduling
+#define DEBUG1 //additional level of debugging which shows processes arriving in queues
+//#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
 
 //Class defining a process, contains all its info
 struct Process {
-    unsigned int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
-    std::string log; //empty string we can append to to log process history
+    int pid, burst, arrival, priority, basePriority, lastRun, io;//process information
+    bool kernel;
     Process* next; //pointers for next and previous process in doubly linked list
     Process* prev;
 
@@ -18,10 +18,10 @@ struct Process {
         pid = a;
         burst = b;
         priority = basePriority = c;
-        arrival = d;
+        arrival = lastRun = d;
         io = e; 
         next = prev = nullptr;
-        lastRun = 0;
+        kernel = basePriority >=50 ? true : false;
     }
     Process() //default constructor for process
     {
@@ -34,10 +34,10 @@ struct Process {
     }
 };
 
-typedef Process* processPtr;
+typedef Process* processPtr;//if i define this at the top vscode gets very upset
 
 
-//Class defining the first and last element in a linked list queue of processes
+//Queue class, keeps track of first and last process in a linked list, as well as its size and priority
 class Queue {
     public:
     processPtr lastProcess;//last in
@@ -55,11 +55,11 @@ class Queue {
     //methods for the queue class are as follows
 
     //method for adding a new process to the queue
-    bool add(processPtr process);
+    bool add(processPtr process, int clockTick);
     //method for re-queueing a process into a new priority queue
     void reQueue(processPtr process,Queue* queues[], int desiredPriority);
     //method to remove process from the bottom of a queue on completion
-    bool complete();
+    bool complete(int clockTick);
     //method to "execute" processes by subtracting 1 from burst and checking if done
     bool executeProcess(int clockTick);
     //method which returns a pointer to an array containing pointers of all processes
@@ -81,7 +81,7 @@ void Queue::printQueue(){
 }
 
 //adds a process to queue, returns true if the queue was previously empty, false otherwise
-bool Queue::add(processPtr process){
+bool Queue::add(processPtr process, int clockTick){
     if (size==0)
     {//if queue is empty, all we need to do is set its current process to the new one
         currentProcess = lastProcess = process;
@@ -94,16 +94,16 @@ bool Queue::add(processPtr process){
     }
     size++;
     #ifdef DEBUG1
-    std::cout << "Process PID:" << process->pid  << " added to queue " << priority << ". Queue is now of size " << size << " on clock tick " << process->arrival <<std::endl;
+    std::cout << "[" << clockTick << "][QUEUE:" << process->priority << "][PID:" << process->pid << "] added to queue" << std::endl;
     #endif
     return currentProcess->prev == nullptr; 
 }
 
 //remove the current process from a given queue. returns true if it was the only process in queue.
-bool Queue::complete(){
+bool Queue::complete(int clockTick){
     bool solo = false;
     #ifdef DEBUG
-    std::cout << "Process PID:" << currentProcess->pid << " completed in queue " << priority;
+    std::cout << "[" << clockTick << "][QUEUE:" << priority << "][PID:" << currentProcess->pid  << "] Completed" <<std::endl;
     #endif
     if (size > 1)
     {
@@ -132,7 +132,7 @@ bool Queue::executeProcess(int clockTick)
 }
 
 //insert a given process
-void reQueue(processPtr process, Queue* queues[], int desiredPriority){
+void reQueue(processPtr process, Queue* queues[], int desiredPriority, int clockTick){
     if (process->prev != nullptr){
     process->prev->next = process->next;//link previous process to next process
     }
@@ -141,16 +141,18 @@ void reQueue(processPtr process, Queue* queues[], int desiredPriority){
     }
     process->next = process->prev = nullptr; //reset pointers of process to null
     queues[process->priority]->size--;//decriment size of queue process is in by 1
-    queues[desiredPriority]->add(process);//add old process to new queue
+    queues[desiredPriority]->add(process, clockTick);//add old process to new queue
     #ifdef DEBUG//console output for debugging and logging
     std::cout << "Procces PID:" << process->pid <<" re-queued to new queue " << desiredPriority; 
     #endif
 }
 
-void roundRobin(Queue* queue)
+
+//moves the first process in a queue to the end and updates queue accordingly 
+void roundRobin(Queue* queue, int clockTick)
 {
     #ifdef DEBUG
-    std::cout << "Process PID:" << queue->currentProcess->pid << " round-robin in queue " << queue->priority << " of size " << queue->size;
+    std::cout << "[" << clockTick << "]" << "[QUEUE:" << queue->priority << "][PID:" << queue->currentProcess->pid << "] Round robin" << std::endl;
     #endif
     if (queue->size > 1)
     {
@@ -164,17 +166,16 @@ void roundRobin(Queue* queue)
     }
 }
 
-//promote a given process by an offset
-void promote(processPtr process, Queue* queues[]){
-    bool kernel = (process->basePriority >=50 ? true : false);//determine if kernel or user process
-    int newPriority = (kernel) ? std::min(process->priority+10, (unsigned) 99) : std::min(process->priority+10, (unsigned) 49);//big complicated statement that basically finds the new priority
-    (newPriority == process->priority) ? roundRobin(queues[process->priority]) : reQueue(process, queues, newPriority);//if new priority is the same as the old priority, roundrobin, else requeue
+//promote a given process by 10
+void promote(processPtr process, Queue* queues[], int clockTick){
+    int newPriority = (process->kernel) ? std::min(process->priority+10, 99) : std::min(process->priority+10, 49);//big complicated statement that finds the new priority
+    (newPriority == process->priority) ? roundRobin(queues[process->priority], clockTick) : reQueue(process, queues, newPriority, clockTick);//if new priority is the same as the old priority, roundrobin, else requeue
 }
 
-//demote a given process by an offset
-void demote(processPtr process, Queue* queues[], int offset){
-    int newPriority = std::max((int)process->basePriority, (int)process->priority-offset);//kernel/user need not apply since a process cannot deomte past its base priority
-    (newPriority == process->priority) ? roundRobin(queues[process->priority]) : reQueue(process, queues, newPriority);//round robin if same priority, else requeue
+//demote a given process by an offset (time spent in cpu)
+void demote(processPtr process, Queue* queues[], int offset, int clockTick){
+    int newPriority = std::max(process->basePriority, process->priority-offset);//kernel/user need not apply since a process cannot deomte past its base priority. this broke the scheduler for like an entire day bc i was using unsigned ints lol 
+    (newPriority == process->priority) ? roundRobin(queues[process->priority], clockTick) : reQueue(process, queues, newPriority, clockTick);//round robin if same priority, else requeue
 }
 
 //promotes all aged processes in a given queue and returns number of processes promoted
