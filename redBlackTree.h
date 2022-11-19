@@ -27,7 +27,7 @@ private:
 	// initializes the nodes with appropirate values
 	// all the pointers are set to point to the null pointer
 	void initializeNULLNode(NodePtr node, NodePtr parent) {
-		node->priority = 0;
+		node->priority = NULL;
 		node->parent = parent;
 		node->left = nullptr;
 		node->right = nullptr;
@@ -307,7 +307,7 @@ public:
 	}
 
 	int getSize(){
-		return size; 
+		return this->size; 
 	}
 	
 	// find the node with the minimum key
@@ -320,7 +320,7 @@ public:
 
 	// find the node with the maximum key
 	NodePtr maximum(NodePtr node) {
-		if (node == TNULL)
+		if (this->size == 0)
 		{
 			return NULL;
 		}
@@ -456,6 +456,10 @@ public:
 	}
 
 	NodePtr getRoot(){
+		if (this->size == 0)
+		{
+			return NULL;
+		}
 		return this->root;
 	}
 

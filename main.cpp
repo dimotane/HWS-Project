@@ -7,7 +7,7 @@
 #include "queueAndProcess.h"
 #include "redBlackTree.h"
 
-#define DEBUG
+//#define DEBUG
 
 //this function reads the input file and parses it into processes
 vector<Process> readFile(string filepath){
@@ -34,14 +34,13 @@ vector<Process> readFile(string filepath){
         int deadline = stoi(pieces[4]);
         int io = stoi(pieces[5]); //parse strings as ints 
 
-        if (burst<1 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1){
+        if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1){
             continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
         }
         else
-        {   //Process process = new Process();
+        {   //create process with data gathered
             Process process = Process(pid, burst, priority, arrival, io);
             pVector.push_back(process); //add process to the end of the vector
-            //cout  << " pid: " << process.pid << " arrival: " << process.arrival << " burst: " << process.burst << " priority: " << process.priority << endl;
         } 
    }
     return pVector;
@@ -56,11 +55,12 @@ bool processSort(Process p1, Process p2) //check if one is bigger than the other
 
 //vars used in main
 unsigned int clockTick = 1;
-unsigned int tq = 5; 
+unsigned int tq;
 unsigned int totalProcesses; 
 unsigned int highest;
 int activeQueue = -1;
 int cputime = 0; 
+bool becameInactive = false; 
 RBTree activeTree; 
 Node* root;
 RBTree* treeAddr = &activeTree;
@@ -72,6 +72,11 @@ void updateActive()//sets activequeue to highest active queue, or null if there 
     activeQueue = (activeTree.maximum(root) == NULL) ? -1 : (activeTree.maximum(root)->priority);
 }
 
+void checkQueues(Queue * queues[])
+{
+    int activeQueues[100];
+}
+
 int main() {
     cout << "Please enter the path to your input file:";
     string inputpath; //"input.txt";
@@ -79,8 +84,9 @@ int main() {
 
     cout << "Reading input file" << endl;
     vector<Process> processes = readFile(inputpath); //read processes into a vector
-    cout << "Sorting " << processes.size() << " valid processes" << endl;
-    sort(processes.begin(), processes.end(), processSort);; //sort based on arrival time
+    cout << "Sorting " << processes.size() << " valid processes...";
+    sort(processes.begin(), processes.end(), processSort); //sort based on arrival time
+    cout << "Done!" << endl;
 
     for (int i = 0; i <= 99; i++)
     {//set up all the queues 
@@ -88,19 +94,28 @@ int main() {
         queues[i]->priority = i;
     }
 
+    cout << "Please enter time quantum:";
+    cin >> tq;
+
     //object used for inserting processes
     Process p;
+    int complete = processes.size()-1;
 
     cout << "Starting Clock and Beginning HWS" << endl;
-    while(!(activeQueue == -1 && clockTick > 100))
+    while(totalProcesses != complete)
     {   //update the pointer to the last process in the sorted vector
+        if (processes.size() > 1)
+        {
         processPtr last = &processes.back();
         //insert processes whose arrival time matches current clock tick
-        while (last->arrival == clockTick && last != nullptr)
+        while (last->arrival == clockTick && last != NULL)
         {//this handles the logic for adding a node the an empty tree
             if(queues[last->priority]->add(last))
             {//add priority queue to active tree if it was previously empty
                 activeTree.insert(last->priority);
+                #ifdef DEBUG
+                    cout << "Queue " << last->priority << " became active on clock tick " << clockTick << endl;
+                #endif
                 root = activeTree.getRoot();
             }
             //activeTree.prettyPrint();
@@ -111,6 +126,7 @@ int main() {
                 updateActive();
             }
         }
+        }
 
         if (cputime != tq && activeQueue != -1)//if process has not used up its tq 
         {   //execute one tick of current process and see if it completes
@@ -118,27 +134,41 @@ int main() {
             {//if it completes, see if it was the only process in queue
                 if(queues[activeQueue]->complete())
                 {//if it was alone in queue, remove the priority from the active tree
-                    activeTree.deleteNode(queues[activeQueue]->priority);
-                    cputime = -1;//reset cpu time
+
+                    activeTree.deleteNode(activeQueue);
                     root = activeTree.getRoot();//update root of active tree
+                    becameInactive = true;
                 }
+                #ifdef DEBUG
+                cout << " on clock tick " << clockTick << std::endl;//finish complete statement
+                if (becameInactive){
+                cout << "Queue " << activeQueue << " became inactive on clock tick " << clockTick << endl;
+                }
+                #endif
                 updateActive();//update highest priority queue
                 totalProcesses++;//incriment processes completed
-                cout << " on clock tick " << clockTick << std::endl;//finish complete statement
+                cputime = -1;//reset cpu time
             }
         }
         else if (activeQueue != -1)//demote process by time spent in cpu, it used up its tq
-        {
+        {   
+            #ifdef DEBUG
+            cout << "Time quantum expired, demoting process PID: " <<queues[activeQueue]->currentProcess->pid << endl;
+            #endif
             demote(queues[activeQueue]->currentProcess, queues, cputime);
+            #ifdef DEBUG
             cout << " on clock tick " << clockTick << std::endl;
+            #endif
             updateActive();
             cputime = -1;//set to -1 to reset to 0 once cputime++ occurs
+            clockTick--;//clock should not incriment during demotion
         }
         cputime++; //increment cpu time and clock tick 
         clockTick++;
+        becameInactive = false;
     }
 
-    cout << "HWS Simulation complete. Simulated " << totalProcesses << " processes using " << clockTick << " clock ticks." << endl;
+    cout << "No active queues remain: HWS Simulation complete. Simulated " << totalProcesses << " processes using " << clockTick-1 << " clock ticks." << endl;
     return 0;
 };
 
