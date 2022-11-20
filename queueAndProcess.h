@@ -8,12 +8,12 @@
 
 #define DEBUG //normal debuggind for process completion and rescheduling
 #define DEBUG1 //additional level of debugging which shows processes arriving in queues
-#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
-#define PRINT //enables printing of queue before and after processes move. insane slowdown
+//#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
+//#define PRINT //enables printing of queue before and after processes move. insane slowdown
 
 //Class defining a process, contains all its info
 struct Process {
-    int pid, burst, arrival, priority, basePriority, lastRun, io, completionTick, totalWait, numWaits;//process information
+    int pid, burst, arrival, priority, basePriority, lastRun, lastMovement, io, completionTick, totalWait, numWaits;//process information (literally half of these are for logging lol)
     bool kernel;
     Process* next; //pointers for next and previous process in doubly linked list
     Process* prev;
@@ -27,12 +27,12 @@ struct Process {
         io = e; 
         next = prev = nullptr;
         kernel = basePriority >=50 ? true : false;
-        totalWait =  numWaits = completionTick = 0;
+        totalWait =  numWaits = completionTick = lastMovement = 0;
     }
 
     Process()//default contstructor
     {
-        pid = burst = priority = basePriority = arrival = lastRun = io = completionTick = totalWait = numWaits = 0;//make everything 0 lol
+        pid = burst = priority = basePriority = arrival = lastRun = lastMovement = io = completionTick = totalWait = numWaits = 0;//make everything 0 lol
         next = prev = nullptr;
         kernel = false;
     }
@@ -50,8 +50,7 @@ struct Process {
 
 typedef Process* processPtr;//if i define this at the top vscode gets very upset
 
-
-//Queue class, keeps track of first and last process in a linked list, as well as its size and priority
+//Queue class, keeps track of first and last process in a linked list, as well as its own size and priority
 class Queue {
     public:
     processPtr lastProcess;//last in
@@ -80,6 +79,7 @@ class Queue {
     void printQueue();
 };
 
+//adds leading zeroes to clock tick for prettier output
 std::string fixClockTick(int clockTick) {
     std::string out = "";
     std::string clockString = std::to_string(clockTick);
@@ -91,13 +91,12 @@ std::string fixClockTick(int clockTick) {
     return out;
 }
 
+//returns a string 0X in place of -X for int x
 std::string fixQueue(int queue) {
 return (std::to_string(queue).length()==1) ?  "0" + std::to_string(queue) : std::to_string(queue);
 }
 
-
-#ifdef PRINT
-//i dont use this lol
+//prints queue in order
 void Queue::printQueue(){
     std::cout << "[PRINTING] Printing queue " << priority << " in order from current process to last process" << std::endl;
     processPtr proc = currentProcess;
@@ -108,8 +107,6 @@ void Queue::printQueue(){
     }
     std::cout << "[PRINTING] PID: " << proc->pid << std::endl;
 }
-#endif
-
 
 //adds a process to queue, returns true if the queue was previously empty, false otherwise
 bool Queue::add(processPtr process, int clockTick){
@@ -133,13 +130,13 @@ bool Queue::add(processPtr process, int clockTick){
     return currentProcess->prev == nullptr; 
  }
 
-//remove the current process from a given queue. returns true if it was the only process in queue.
+//removes the current process from a given queue. returns true if it was the only process in queue.
 bool Queue::complete(int clockTick, std::vector <Process> completedProcessList){
     completedProcessList.push_back(*currentProcess);//add completed process to completed process list
     currentProcess->completionTick = clockTick;
     bool solo = false;
     #ifdef DEBUG//debugging messages
-    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(priority) << priority << "] [PID:" << currentProcess->pid  << "] Completed" <<std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(priority) << "] [PID:" << currentProcess->pid  << "] Completed" <<std::endl;
     #endif
     if (size > 1)
     {
@@ -154,7 +151,7 @@ bool Queue::complete(int clockTick, std::vector <Process> completedProcessList){
     return solo;
 }
 
-//decriments burst by 1 and returns true only if burst reaches 0
+//decriments burst by 1 and returns true if burst reaches 0
 bool Queue::executeProcess(int clockTick)
 {
     if (!(currentProcess->lastRun = clockTick-1)){//log a wait time if the process hasn't run for at least 1 tick

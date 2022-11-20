@@ -103,10 +103,9 @@ int reQueue(processPtr process, Queue * queues[], int desiredPriority, int clock
 void roundRobin(Queue* queue, int clockTick)
 {
     #ifdef DEBUG//debugging messages
-    std::cout << "There would be a round robin in queue " << queue->priority << ", but I'm debugging!" << endl;;
-    //std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << queue->priority << "] [PID:" << queue->currentProcess->pid << "] Round robin" << std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << queue->priority << "] [PID:" << queue->currentProcess->pid << "] Round robin" << std::endl;
     #endif
-    /*
+    
     if (queue->size > 1)
     {
         processPtr newLast = queue->currentProcess;//create temp pointer to previous first process
@@ -117,7 +116,6 @@ void roundRobin(Queue* queue, int clockTick)
         newLast->prev = nullptr;//new last in line should not have anything in prev pointer
         queue->lastProcess = newLast;//finally, update last process pointer in queue
     }
-    */
 }
 
 //process movement driver: handles the logic and then moves a process
@@ -170,7 +168,7 @@ int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQue
 
 
         //make a pointer to the last process in queue
-        processPtr iterator = queues[activeQueue]->lastProcess;
+        processPtr iterator = queues[i]->lastProcess;
 
         //check if iterator is old enough to be promoted. 
         //if it is, temporarily store the process's values, promote it ,and iterate 
