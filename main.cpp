@@ -7,6 +7,8 @@
 #include "queueAndProcess.h"
 #include "redBlackTree.h"
 
+static int promoteValue = 10;
+
 //*******************************************************//
 //            Mitchell Ewan & Jay Grzybowski             //
 //               Hybrid windows scheduler                //
@@ -29,7 +31,7 @@ vector <Process> readFile(string filepath, bool hasFile){
     string inputline; //input string
     char tab = '\t';
     int counter;
-    if (hasFile) {
+    if (hasFile) { 
         std::cout << "[-] Reading input file...";
         getline(InputFile, inputline);//get rid of header line
         getline(InputFile, inputline);//get the first line
@@ -63,8 +65,8 @@ vector <Process> readFile(string filepath, bool hasFile){
         std::cout << "Done!" << endl;
     }else
     {
-    bool exit = false;
-    bool first = true;
+        bool exit = false;
+        bool first = true;
         string response;
         while(!exit){
             if (!first) {
@@ -105,6 +107,8 @@ vector <Process> readFile(string filepath, bool hasFile){
     return pVector;
 }
 
+
+
 bool sortProcessVector(Process p1, Process p2) //used by the vector sorting method to order our processes so lowest priority is at the back
 {
     int a1 = p1.arrival;
@@ -116,59 +120,42 @@ bool sortProcessVector(Process p1, Process p2) //used by the vector sorting meth
     return (a1>a2);
 }
 
-//promote all processes in the queue 
-void promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQueue)
-{
-    int totalPromotions = 0;//will print
-    bool isActive;//
-    int oldEnough = clockTick - age; //if process last ran before this, promote it
 
-    //don't do anything until there are actually processes in the queues
-    if (activeQueue == -1){
-        return;
-    }
 
-    //loop through all queues
-    for (int i = 0; i <= 99; i++){
-        isActive = (i == activeQueue);
-        if (i == 49 || i == 99 || queues[i]->currentProcess == nullptr){//break if no current process, queue is empty. processess in 49 and 99 cannot be promoted so continue
-            continue;
-        }
-        
-        processPtr iterator = queues[activeQueue]->currentProcess;
+//inserts a given process to a new queue, and returns true if a new queue was activated(NOT DONE) 
+bool reQueue(processPtr process, Queue * queues[], int desiredPriority, int clockTick){
 
-        while (iterator->next != nullptr)
-        {
-
-            #ifdef DEBUG2//debugging messages
-            #endif
-        }
-        
-    }
-
-    #ifdef DEBUG
-    if (totalPromotions > 0){
-    std::cout << "[" << fixClockTick(clockTick) << "]" << totalPromotions << " processes promoted" << endl;
-    }
-    #endif
-}
-
-//inserts a given process to a new queue (NOT DONE)
-void reQueue(processPtr process, Queue * queues[], int desiredPriority, int clockTick){
-    processPtr ref = process; 
-    if (process->prev != nullptr){
-    process->prev->next = process->next;//link previous process to next process
-    }
-    if (process->next != nullptr){
-    process->next->prev = process->prev;//vice versa 
-    }
-    process->next = process->prev = nullptr; //reset pointers of process to null
     queues[process->priority]->size--;//decriment size of queue process is in by 1
-    queues[desiredPriority]->add(process, clockTick);//add process to new queue
-    #ifdef DEBUG//debugging messages
-    std::cout << "Procces PID:" << process->pid <<" re-queued to new queue " << desiredPriority; 
+    queues[process->priority]->printQueue();
+    #ifdef DEBUG2//debugging messages
+    if (desiredPriority > process->priority){
+        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Promoting to new queue" << std::endl;
+    }else
+    {
+        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Demoting to new queue" << std::endl;
+    }
     #endif
+
+    process->priority = desiredPriority;//update priority
+
+    if (process->next == nullptr){//if requeuing process is current process
+        queues[process->priority]->currentProcess = process->prev;
+        process->prev->next = nullptr;
+    } else if (process->prev == nullptr)//if requeuing process is last process
+    {  
+        queues[process->priority]->lastProcess = process->next;
+        process->next->prev = nullptr;
+    } else //otherwise update the processes before and after this one
+    {
+        process->next->prev  = process->prev;
+        process->prev->next = process->next;
+    }
+
+    process->next = process->prev = nullptr; //reset pointers of process to null
+    
+    return queues[desiredPriority]->add(process, clockTick);//add process to new queue, return true if a new queue became active
 }
+
 
 
 //moves the first process in a queue to the end and updates queue accordingly 
@@ -189,16 +176,84 @@ void roundRobin(Queue* queue, int clockTick)
     }
 }
 
+
+
 //promote a given process by 10
-void promote(processPtr process, Queue* queues[], int clockTick){
-    int newPriority = (process->kernel) ? std::min(process->priority+10, 99) : std::min(process->priority+10, 49);//big complicated statement that finds the new priority
-    (newPriority == process->priority) ? roundRobin(queues[process->priority], clockTick) : reQueue(process, queues, newPriority, clockTick);//if new priority is the same as the old priority, roundrobin, else requeue
+void promote(processPtr process, Queue* queues[], int clockTick, RBTree activeTree) {
+    int newPriority = (process->kernel) ? std::min(process->priority+promoteValue, 99) : std::min(process->priority+promoteValue, 49);//big complicated statement that finds the new priority
+    if (newPriority == process->priority) {//round robin if same priority, else requeue
+    roundRobin(queues[process->priority], clockTick);
+    } else if (reQueue(process,queues,newPriority,clockTick))//if requeued, see if new queue became active
+    { 
+        activeTree.insert(newPriority);//update priority queue tree
+    }
 }
 
+
+
 //demote a given process by an offset (time spent in cpu)
-void demote(processPtr process, Queue* queues[], int offset, int clockTick){
+void demote(processPtr process, Queue* queues[], int offset, int clockTick, RBTree activeTree) {
     int newPriority = std::max(process->basePriority, process->priority-offset);//kernel/user need not apply since a process cannot deomte past its base priority. this broke the scheduler for like an entire day bc i was using unsigned ints lol 
-    (newPriority == process->priority) ? roundRobin(queues[process->priority], clockTick) : reQueue(process, queues, newPriority, clockTick);//round robin if same priority, else requeue
+    if (newPriority == process->priority){//round robin if same priority, else requeue
+        roundRobin(queues[process->priority], clockTick);
+    } else if (reQueue(process,queues,newPriority,clockTick))//if requeued, see if new queue became active
+    { 
+        activeTree.insert(newPriority);//update priority queue tree
+    }
+}
+
+
+
+//promote all aged processes by 10 
+int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQueue, RBTree activeTree)
+{
+    int totalPromotions = 0;//will print
+    bool isActive;//used to prevent promoting the currently running process 
+    int oldEnough = clockTick - age; //if process last ran before this clock tick, promote it
+    processPtr tempNext;
+
+    //loop through all queues
+    for (int i = 0; i <= 99; i++){
+        isActive = (i == activeQueue);
+        if (i == 49 || i == 99 || queues[i]->currentProcess == nullptr){//break if no current process, queue is empty. processess in 49 and 99 cannot be promoted so continue
+            continue;
+        }
+
+        //this probably isn't needed but I'm keeping it here just in case
+        /*
+        //don't you dare promote the currently running process
+        if ((isActive)&&(queues[i]->currentProcess == queues[i]->lastProcess)){
+            continue;
+        }
+        */
+
+        //make a pointer to the last process in queue
+        processPtr iterator = queues[activeQueue]->lastProcess;
+
+        //check if iterator is old enough to be promoted. 
+        //if it is, promote it, and iterate 
+        do
+        {   
+            bool wasPromoted = false;
+            if (iterator->lastRun < oldEnough){
+                tempNext = iterator->next;
+                promote(iterator, queues, clockTick, activeTree);
+                wasPromoted = true; 
+                totalPromotions++;
+            }
+
+            //if the process was promoted we use a temporary pointer that stored its next process before it was promoted
+            iterator = wasPromoted ? tempNext : iterator->next; 
+        }
+        while (iterator != nullptr);
+    }
+
+    #ifdef DEBUG
+    if (totalPromotions > 0){
+    std::cout << "[" << fixClockTick(clockTick) << "] " << totalPromotions << " processes promoted" << endl;
+    }
+    #endif
+    return 0; 
 }
 
 int updateActiveQueue(int clockTick, RBTree activeTree, Node* root, int activeQueue)//sets activequeue to highest active queue, or -1 if there are no active queues
@@ -211,6 +266,14 @@ int updateActiveQueue(int clockTick, RBTree activeTree, Node* root, int activeQu
     #endif
     return newActive;
 }
+
+
+
+//=================================================================================================================================================================================//
+//=================================================================================================================================================================================//
+//=================================================================================================================================================================================//
+
+
 
 int main() {
     //set up vars
@@ -280,7 +343,9 @@ int main() {
         }
 
         //check all queues for aged processes and promote them. this will not promote the active process
-        promoteAgedProcesses(queues, age, clockTick, activeQueue);
+        if (clockTick >= age){
+            promoteAgedProcesses(queues, age, clockTick, activeQueue, activeTree);
+        }
 
         //this is the part that actually executes the process and stuff
         if (cpuTime != tq && activeQueue != -1) {//if current process has not used up its tq
@@ -304,7 +369,7 @@ int main() {
             #ifdef DEBUG//output messages
             std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(activeQueue) << "] [PID:" << queues[activeQueue]->currentProcess->pid << "]" << " Time quantum expired, demoting" << std::endl; 
             #endif
-            demote(queues[activeQueue]->currentProcess, queues, cpuTime, clockTick);//demote the process by amount of time it has spent in the cpu
+            demote(queues[activeQueue]->currentProcess, queues, cpuTime, clockTick, activeTree);//demote the process by amount of time it has spent in the cpu
             activeQueue = updateActiveQueue(clockTick, activeTree, root, activeQueue);
             cpuTime = -1;//set to -1 to reset to 0 once cpuTime++ occurs
             clockTick--;//clock should not incriment during demotion
@@ -314,10 +379,13 @@ int main() {
         becameInactive = false;
     }
 
+    //init values used for stats
     double totalWaitTime, totalTurnaroundTime, avgWaitTime, avgTurnaroundTime;
     
+    //prepare to gather stats from completed processes
     processPtr proc = &completedProcessList.back();
 
+    //calculate the stats
     while (completedProcessList.size() > 1)
     {  
         totalWaitTime += proc->calcAvgWait();
@@ -325,7 +393,6 @@ int main() {
         completedProcessList.pop_back();
         proc = &completedProcessList.back();
     }
-
     avgWaitTime = totalWaitTime / totalProcesses;
     avgTurnaroundTime = totalTurnaroundTime / totalProcesses;
 

@@ -7,9 +7,9 @@
 //to debug, uncomment the lines below as needed. these will significantly slow down the program
 
 #define DEBUG //normal debuggind for process completion and rescheduling
-//#define DEBUG1 //additional level of debugging which shows processes arriving in queues
-//#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
-//#define PRINT //enables printing of queue before and after a round robin. use at your own disgression 
+#define DEBUG1 //additional level of debugging which shows processes arriving in queues
+#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
+#define PRINT //enables printing of queue before and after processes move. insane slowdown
 
 //Class defining a process, contains all its info
 struct Process {
@@ -28,6 +28,13 @@ struct Process {
         next = prev = nullptr;
         kernel = basePriority >=50 ? true : false;
         totalWait =  numWaits = completionTick = 0;
+    }
+
+    Process()//default contstructor
+    {
+        pid = burst = priority = basePriority = arrival = lastRun = io = completionTick = totalWait = numWaits = 0;//make everything 0 lol
+        next = prev = nullptr;
+        kernel = false;
     }
 
     double calcAvgWait()//returns the average time the process spent waiting before seeing the CPU again
@@ -92,7 +99,7 @@ return (std::to_string(queue).length()==1) ?  "0" + std::to_string(queue) : std:
 #ifdef PRINT
 //i dont use this lol
 void Queue::printQueue(){
-    std::cout << "Printing queue in order from current process to last process" << std::endl;
+    std::cout << "Printing queue " << priority << " in order from current process to last process" << std::endl;
     processPtr proc = currentProcess;
     while (proc->prev != nullptr)
     {
@@ -108,7 +115,7 @@ void Queue::printQueue(){
 bool Queue::add(processPtr process, int clockTick){
     if (size==0)
     {//if queue is empty, all we need to do is set its current process to the new one
-        currentProcess = lastProcess = process;
+         currentProcess = lastProcess = process;
     }
     else
     { //otherwise we need to change the head process and add the node to the DLL
@@ -116,12 +123,15 @@ bool Queue::add(processPtr process, int clockTick){
     lastProcess->prev = process;
     lastProcess = process;
     }
+    #ifdef PRINT
+    printQueue();
+    #endif
     size++;
     #ifdef DEBUG1//debugging messages
     std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] added to queue" << std::endl;
     #endif
     return currentProcess->prev == nullptr; 
-}
+ }
 
 //remove the current process from a given queue. returns true if it was the only process in queue.
 bool Queue::complete(int clockTick, std::vector <Process> completedProcessList){
@@ -154,7 +164,7 @@ bool Queue::executeProcess(int clockTick)
     currentProcess->lastRun = clockTick; //update lastrun of process
     currentProcess->burst -= 1;//subtract from the burst
     #ifdef DEBUG2
-    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << queuePrintFix(currentProcess->priority) << "][PID:" << currentProcess->pid  << "] Executed one tick" <<std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(currentProcess->priority) << "] [PID:" << currentProcess->pid  << "] Executed one tick" <<std::endl;
     #endif
     return currentProcess->burst == 0;  //return true if process completes
 }
