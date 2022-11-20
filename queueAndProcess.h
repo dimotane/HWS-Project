@@ -76,7 +76,7 @@ class Queue {
     bool complete(int clockTick, std::vector <Process> completedProcessList);
     //method to "execute" processes by subtracting 1 from burst and checking if done
     bool executeProcess(int clockTick);
-    //useless print 
+    //prints the queue
     void printQueue();
 };
 
@@ -99,14 +99,14 @@ return (std::to_string(queue).length()==1) ?  "0" + std::to_string(queue) : std:
 #ifdef PRINT
 //i dont use this lol
 void Queue::printQueue(){
-    std::cout << "Printing queue " << priority << " in order from current process to last process" << std::endl;
+    std::cout << "[PRINTING] Printing queue " << priority << " in order from current process to last process" << std::endl;
     processPtr proc = currentProcess;
     while (proc->prev != nullptr)
     {
-        std::cout << "PID: " << proc->pid << std::endl;
+        std::cout << "[PRINTING] PID: " << proc->pid << std::endl;
         proc = proc->prev;
     }
-    std::cout << "PID: " << proc->pid << std::endl;
+    std::cout << "[PRINTING] PID: " << proc->pid << std::endl;
 }
 #endif
 
@@ -118,7 +118,7 @@ bool Queue::add(processPtr process, int clockTick){
          currentProcess = lastProcess = process;
     }
     else
-    { //otherwise we need to change the head process and add the node to the DLL
+    { //otherwise we need to change the last process and add the node to the DLL
     process->next = lastProcess;
     lastProcess->prev = process;
     lastProcess = process;
