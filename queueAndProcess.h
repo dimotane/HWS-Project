@@ -7,7 +7,7 @@
 //to debug, uncomment the lines below as needed. these will significantly slow down the program
 
 #define DEBUG //normal debuggind for process completion and rescheduling
-#define DEBUG1 //additional level of debugging which shows processes arriving in queues
+//#define DEBUG1 //additional level of debugging which shows processes arriving in queues
 //#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
 //#define PRINT //enables printing of queue before and after a round robin. use at your own disgression 
 
@@ -75,10 +75,9 @@ class Queue {
 
 std::string fixClockTick(int clockTick) {
     std::string out = "";
-    std::string clockString;
-    clockString = std::to_string(clockTick);
+    std::string clockString = std::to_string(clockTick);
     int strLen = clockString.length();
-    for (int i = 0; i < 9-strLen; i++) {
+    for (int i = 0; i < 8-strLen; i++) {
         out += "-";
     }
     out += std::to_string(clockTick);
