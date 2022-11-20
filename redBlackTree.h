@@ -22,12 +22,12 @@ class RBTree {
 private:
 	NodePtr root;
 	NodePtr TNULL;
-	int size; 
+	int size = 0;
 
 	// initializes the nodes with appropirate values
 	// all the pointers are set to point to the null pointer
 	void initializeNULLNode(NodePtr node, NodePtr parent) {
-		node->priority = NULL;
+		node->priority = -1;
 		node->parent = parent;
 		node->left = nullptr;
 		node->right = nullptr;
@@ -280,6 +280,7 @@ public:
 		TNULL->left = nullptr;
 		TNULL->right = nullptr;
 		root = TNULL;
+		size = 0;
 	}
 
 	// Pre-Order traversal
@@ -456,7 +457,7 @@ public:
 	}
 
 	NodePtr getRoot(){
-		if (this->size == 0)
+		if (this->size == 0 || this->size > 100)
 		{
 			return NULL;
 		}
