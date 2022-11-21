@@ -4,7 +4,7 @@
 static int promoteValue = 10;
 
 //*******************************************************//
-//            Mitchell Ewan & Jay Grzybowski             //
+//            Mitchell Ewan & Aloisius Grzybowski        //
 //               Hybrid windows scheduler                //
 //                                                       //
 // Takes user input, either in the form of an input file //

@@ -53,6 +53,7 @@ std::vector <Process> readFile(string filepath, bool hasFile){
     {
         bool exit = false;
         bool first = true;
+        counter = 1;
         string response;
         while(!exit){
             if (!first) {
@@ -61,27 +62,24 @@ std::vector <Process> readFile(string filepath, bool hasFile){
             }
             if((response.compare("Yes") == 0 || response.compare("yes") == 0 || response.compare("YES") == 0) || first) {
                 //do the intake code
-                std::cout << "[-] Please enter process ID, burst, arrival, priority, deadline, and I/O separated by spaces: ";
-                std::cin >> inputline;
-                counter = 0;
-                istringstream iss(inputline); //read the input string
-                while(!iss.eof()){
-                getline(iss, pieces[counter]);
-                counter++;
-            } //this while loop parses 1 process into 6 strings
-
-            int pid = stoi(pieces[0]);
-            int burst = stoi(pieces[1]);
-            int arrival = stoi(pieces[2]);
-            int priority = stoi(pieces[3]);
-            int deadline = stoi(pieces[4]);
-            int io = stoi(pieces[5]); //parse strings as ints 
+                first = false;
+                int pid = counter;
+                int burst;
+                int arrival;
+                int priority;
+                int deadline;
+                int io;
+                std::cout << "[-] Process ID: (" << counter << ")\n";
+                cout << "[?] Enter the burst, arrival, priority, deadline, and I/O of this process with spaces in between. \n";
+                cin >> burst >> arrival >> priority >> deadline >> io;
+            
 
             if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1 ){
-                std::cout << endl << "[X] This process is invalid."; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
+                std::cout << endl << "[X] This process is invalid.\n"; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
             } else {
             Process process = Process(pid, burst, priority, arrival, io);
             pVector.push_back(process); //add process to the end of the vector
+            counter ++; //only increment if process is valid
             }
             } else if (response.compare("No") == 0 || response.compare("no") == 0 || response.compare("NO") == 0){
                 exit = true; //continue
