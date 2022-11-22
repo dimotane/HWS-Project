@@ -6,10 +6,10 @@
 
 //to debug, uncomment the lines below as needed. these will significantly slow down the program
 
-#define DEBUG //normal debuggind for process completion and rescheduling
-#define DEBUG1 //additional level of debugging which shows processes arriving in queues
+//#define DEBUG //normal debugging for process completion and rescheduling
+//#define DEBUG1 //additional level of debugging which shows processes arriving in queues
 //#define DEBUG2 //enables output for each burst, and printing of queues before/after a round robin
-//#define PRINT //enables printing of queue before and after processes move. insane slowdown
+//#define PRINT //enables printing of queue before and after processes move. 
 
 //Class defining a process, contains all its info
 struct Process {
@@ -23,11 +23,11 @@ struct Process {
         pid = a;
         burst = b;
         priority = basePriority = c;
-        arrival = lastRun = d;
+        arrival = d;
         io = e; 
         next = prev = nullptr;
         kernel = basePriority >=50 ? true : false;
-        totalWait =  numWaits = completionTick = lastMovement = 0;
+        totalWait =  completionTick = lastMovement = lastRun = numWaits = 0;
     }
 
     Process()//default contstructor
@@ -39,12 +39,12 @@ struct Process {
 
     double calcAvgWait()//returns the average time the process spent waiting before seeing the CPU again
     {
-        return totalWait/numWaits;
+        return (this->numWaits == 0) ? 0 : this->totalWait/this->numWaits;
     }
 
     int calcTurnaround()//returns total time spent in scheduler
     {
-        return completionTick-arrival;
+        return this->completionTick-this->arrival;
     }
 };
 
@@ -70,9 +70,7 @@ class Queue {
     //method for adding a new process to the queue
     bool add(processPtr process, int clockTick);
     //method for re-queueing a process into a new priority queue
-    void reQueue(processPtr process,Queue queues[], int desiredPriority);
-    //method to remove process from the bottom of a queue on completion
-    bool complete(int clockTick, std::vector <Process> completedProcessList);
+    bool complete(int clockTick, std::vector <Process> & completedProcessList);
     //method to "execute" processes by subtracting 1 from burst and checking if done
     bool executeProcess(int clockTick);
     //prints the queue
@@ -81,7 +79,7 @@ class Queue {
 
 //adds leading zeroes to clock tick for prettier output
 std::string fixClockTick(int clockTick) {
-    std::string out = "";
+     std::string out = "";
     std::string clockString = std::to_string(clockTick);
     int strLen = clockString.length();
     for (int i = 0; i < 8-strLen; i++) {
@@ -108,11 +106,13 @@ void Queue::printQueue(){
     std::cout << "[PRINTING] PID: " << proc->pid << std::endl;
 }
 
-//adds a process to queue, returns true if the queue was previously empty, false otherwise
+//adds a process to queue, returns true if the queue was previously empty, false otherwi se
 bool Queue::add(processPtr process, int clockTick){
-    if (size==0)
+    bool wasEmpty;
+    if (size == 0)
     {//if queue is empty, all we need to do is set its current process to the new one
-         currentProcess = lastProcess = process;
+        currentProcess = lastProcess = process;
+        wasEmpty = true;
     }
     else
     { //otherwise we need to change the last process and add the node to the DLL
@@ -120,23 +120,23 @@ bool Queue::add(processPtr process, int clockTick){
     lastProcess->prev = process;
     lastProcess = process;
     }
+    size++;
     #ifdef PRINT
     printQueue();
     #endif
-    size++;
     #ifdef DEBUG1//debugging messages
-    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] added to queue" << std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] added to queue, now size "<< size << std::endl;
     #endif
-    return currentProcess->prev == nullptr; 
+    return wasEmpty;
  }
 
 //removes the current process from a given queue. returns true if it was the only process in queue.
-bool Queue::complete(int clockTick, std::vector <Process> completedProcessList){
-    completedProcessList.push_back(*currentProcess);//add completed process to completed process list
+bool Queue::complete(int clockTick, std::vector <Process> & completedProcessList){
     currentProcess->completionTick = clockTick;
-    bool solo = false;
+    completedProcessList.push_back(*currentProcess);//add completed process to completed process list
+    bool nowEmpty = false;
     #ifdef DEBUG//debugging messages
-    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(priority) << "] [PID:" << currentProcess->pid  << "] Completed" <<std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(priority) << "] [PID:" << currentProcess->pid  << "] Completed, queue now size " << size << std::endl;
     #endif
     if (size > 1)
     {
@@ -145,23 +145,26 @@ bool Queue::complete(int clockTick, std::vector <Process> completedProcessList){
     } else
     {
         lastProcess = currentProcess = nullptr;
-        solo = true;
+        nowEmpty = true;
     }
     size--;
-    return solo;
+    return nowEmpty;
 }
 
 //decriments burst by 1 and returns true if burst reaches 0
 bool Queue::executeProcess(int clockTick)
 {
-    if (!(currentProcess->lastRun = clockTick-1)){//log a wait time if the process hasn't run for at least 1 tick
-        currentProcess->totalWait += clockTick - currentProcess->lastRun;//update the total wait time
-        currentProcess->numWaits = (currentProcess->numWaits = currentProcess->arrival) ? currentProcess->numWaits = 0 : currentProcess->numWaits++; //AAAAAAAAAAAAAAAAAAAAA
+    if (currentProcess->lastRun != clockTick-1){//log a wait time if the process hasn't run for at least 1 tick
+        if (clockTick != 1 && currentProcess->arrival != clockTick)
+        {
+        currentProcess->totalWait += clockTick - currentProcess->lastRun ;//update the total wait time
+        currentProcess->numWaits += 1 ; //AAAAAAAAAAAAAAAAAAAAA
+        }
     }
     currentProcess->lastRun = clockTick; //update lastrun of process
     currentProcess->burst -= 1;//subtract from the burst
     #ifdef DEBUG2
-    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(currentProcess->priority) << "] [PID:" << currentProcess->pid  << "] Executed one tick" <<std::endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(currentProcess->priority) << "] [PID:" << currentProcess->pid  << "] Executed one tick, " << currentProcess->burst << " burst time remains" <<std::endl;
     #endif
     return currentProcess->burst == 0;  //return true if process completes
 }

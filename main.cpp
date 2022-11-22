@@ -4,8 +4,8 @@
 static int promoteValue = 10;
 
 //*******************************************************//
-//            Mitchell Ewan & Aloisius Grzybowski        //
-//               Hybrid windows scheduler                //
+//          Mitchell Ewan & Aloisius Grzybowski          //
+//               Hybrid Windows Scheduler                //
 //                                                       //
 // Takes user input, either in the form of an input file //
 // full of processes or manual input from the user, and  //
@@ -57,17 +57,17 @@ bool sortProcessVector(Process p1, Process p2)
     return (a1>a2);
 }
 
-//inserts a given process to a new queue: returns 1 if a new queue became active, -1 if the old queue became inactive, or 0 if there are no changes to active queues
+//inserts a given process to a new queue: returns 2 if a new queue became active, -1 if a queue became inactive, 1 if both, and 0 if neither
 int reQueue(processPtr process, Queue * queues[], int desiredPriority, int clockTick){
     Queue * oldQueue = queues[process->priority];//create a pointer to the old queue for convenience 
     oldQueue->size--;//decriment size of queue process is in by 1
 
-    #ifdef DEBUG2//debugging messages
+    #ifdef DEBUG//debugging messages
     if (desiredPriority > process->priority){
-        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Promoting to new queue" << std::endl;
+        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Promoting to new queue, old queue size " << queues[process->priority]->size << std::endl;
     }else
     {
-        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Demoting to new queue" << std::endl;
+        std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(process->priority) << "] [PID:" << process->pid << "] Demoting to new queue " << desiredPriority << std::endl;
     }
     #endif
 
@@ -75,6 +75,7 @@ int reQueue(processPtr process, Queue * queues[], int desiredPriority, int clock
 
     if (oldQueue->size == 0) {//see if old queue became inactive
     queueChanges -= 1;
+    oldQueue->currentProcess = oldQueue->lastProcess = nullptr;//reset old queue's pointers
     } else if (process->next == nullptr)//if requeuing process is current process
     {
         oldQueue->currentProcess = process->prev;
@@ -107,7 +108,8 @@ void roundRobin(Queue* queue, int clockTick)
     #endif
     
     if (queue->size > 1)
-    {
+    {   
+        queue->currentProcess->lastMovement = clockTick;
         processPtr newLast = queue->currentProcess;//create temp pointer to previous first process
         newLast->prev->next = nullptr;//set the next ponter of second in line to null
         queue->currentProcess = newLast->prev;//set current process to second in line
@@ -115,6 +117,7 @@ void roundRobin(Queue* queue, int clockTick)
         newLast->next = queue->lastProcess;//set next pointer of new last process 
         newLast->prev = nullptr;//new last in line should not have anything in prev pointer
         queue->lastProcess = newLast;//finally, update last process pointer in queue
+
     }
 }
 
@@ -175,7 +178,7 @@ int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQue
         do
         {   
             bool wasPromoted = false;
-            if (iterator->lastRun < oldEnough && iterator->lastMovement < oldEnough){
+            if (iterator->lastRun < oldEnough && iterator->lastMovement < oldEnough && (iterator != queues[i]->currentProcess)){
                 temp = *(iterator);//if process is getting promoted, load its data into the temp process
                 promote(iterator, queues, clockTick, activeQueues);//promote the process
                 wasPromoted = true;//process was promoted
@@ -188,7 +191,7 @@ int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQue
     }
     #ifdef DEBUG
     if (totalPromotions > 0) {
-    std::cout << "[" << fixClockTick(clockTick) << "] " << totalPromotions << " processes promoted" << endl;
+    //std::cout << "[" << fixClockTick(clockTick) << "] " << totalPromotions << " processes promoted" << endl;
     }
     #endif
     return 0; 
@@ -200,8 +203,10 @@ int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQue
 
 int main() {
     //set up vars
-    int completedProcesses, totalProcesses, tq, age;
-    int activeQueue = -1, clockTick = 1, cpuTime = 0;
+    int totalProcesses, tq, age, update;
+    int activeQueue = -1, clockTick = 1, cpuTime = 0, printLine = 0, completedProcesses = 0;
+    int barWidth = 60;
+    float progress; 
     bool becameInactive = false;
     set <int> activeQueues;
     set <int> * setPtr = &activeQueues;
@@ -224,38 +229,59 @@ int main() {
     //sort based on arrival time
     sort(inputProcessQueue.begin(), inputProcessQueue.end(), sortProcessVector);
     std::cout << "Done!" << endl;
-
-    //set up queues. i tried to make this its own method like 100 times but i can't lol 
-    for (int i = 0; i <= 99; i++){
-        queues[i] = new Queue(i);
-        queues[i]->priority = i;
-    }
-
     std::cout << "[?] Please enter time quantum: ";
     std::cin >> tq;
     std::cout << "[?] Please enter age required for promotion: ";
     std::cin >> age;
 
+     //set up queues
+    for (int i = 0; i <= 99; i++){
+        queues[i] = new Queue(i);
+        queues[i]->priority = i;
+    }
+
     //setup more vars to prepare to start scheduler 
     vector<Process> completedProcessList; //vector that will hold completed processes
-    totalProcesses = inputProcessQueue.size();
-    processPtr end = &inputProcessQueue.front();
+    totalProcesses = inputProcessQueue.size();//find out what we're dealing with
     processPtr nextProcess = &inputProcessQueue.back();//pointer the nextProcess item in the vector (lowest arrival)
-    processPtr tempLast = nextProcess; //used for debugging
-    int lastInsertTick = end->arrival;//used to make sure we don't try to add a null process and fuck everything up
+    int lastInsertTick = (&inputProcessQueue.front())->arrival;//technically shouldn't need this anymore, but i'm keeping it just in case 
+    update = std::max(totalProcesses/1000, 100);//make sure progress bar updates smoothly
+    std::cout << "[0] Starting Clock and Beginning Scheduler" << endl;
 
-    std::cout << "[0] Starting Clock and Beginning HWS" << endl;
-    while(completedProcesses < totalProcesses)//keep doing stuff until all expected processes are complete
-    {   //process insertion loop
+    while(completedProcesses <= totalProcesses)//keep doing stuff until all expected processes are complete
+    {   
+        //progress bar i stole from stackoverflow (dont print this if debug, duh)
+        #ifndef DEBUG
+        if (printLine > update || completedProcesses == totalProcesses){
+            progress = (float)completedProcesses/(float)totalProcesses;
+            int pos = barWidth * progress;
+            for (int i = 0; i < barWidth; ++i) {
+                if (i < pos) std::cout << "=";
+                else if (i == pos) std::cout << ">";
+                else std::cout << " ";
+            }
+            std::cout << "] " << int(progress * 100.0) << " % : "<< completedProcesses<< " Processes completed\r[";
+            std::cout.flush();
+            printLine = 1;
+        } else {
+            printLine++;
+        }
+        #endif
+
+        if (completedProcesses == totalProcesses){
+            break;//make sure we print 100% on the progress bar
+        }
+
+        
+        //process insertion loop
         while (nextProcess->arrival == clockTick && clockTick <= lastInsertTick) //insert processes whose arrival time matches current clock tick
         {
             if(queues[nextProcess->priority]->add(nextProcess, clockTick)) {//if the queue it got added to was empty, add that queue to the priority tree
                 addActiveQueue(nextProcess->priority, clockTick, activeQueues);
             }
-            inputProcessQueue.pop_back();
-            tempLast = nextProcess; 
-            nextProcess = &inputProcessQueue.back();
-            if (activeQueue == -1) {
+            inputProcessQueue.pop_back();//pop that process off the stack
+            nextProcess = &inputProcessQueue.back();//update next process
+            if (activeQueue == -1) {//if no queue was active, find the highest priority one
                 activeQueue = findHighestPriorityQueue(clockTick, activeQueues, activeQueue);
             }
         }
@@ -268,9 +294,11 @@ int main() {
         //this is the part that actually executes the process and stuff
         if (cpuTime < tq && activeQueue != -1) {//if current process has not used up its tq (and there is an active queue)
             if(queues[activeQueue]->executeProcess(clockTick)) {//execute one tick of current process and see if it completes
+                //queues[activeQueue]->printQueue();
                 if(queues[activeQueue]->complete(clockTick, completedProcessList)) {//if it completes, see if it was the only process in queue
                     removeActiveQueue(activeQueue, clockTick, activeQueues);//if it was the only process, remove the queue from active
                 }
+                //queues[activeQueue]->printQueue();
                 activeQueue = findHighestPriorityQueue(clockTick, activeQueues, activeQueue);//update highest priority queue
                 completedProcesses++;//incriment processes completed
                 cpuTime = -1;//reset cpu time for next process
@@ -290,6 +318,8 @@ int main() {
         becameInactive = false;
     }
 
+    std::cout << endl;
+
     //init values used for stats
     double totalWaitTime, totalTurnaroundTime, avgWaitTime, avgTurnaroundTime;
     
@@ -308,13 +338,12 @@ int main() {
     avgTurnaroundTime = totalTurnaroundTime / totalProcesses;
 
     //fixes the formatting on stats to make them have only two decimal places
-    std::cout.unsetf (std::ios::floatfield);
-    std::cout.precision(3);
+
 
     //print the stats and exit
     std::cout << "[-] All processes complete: HWS Simulation complete. Simulated " << totalProcesses << " processes in " << clockTick-1 << " clock ticks." << endl;
-    std::cout << "[-] Average wait time: " << avgWaitTime << " ticks" << endl;
-    std::cout << "[-] Average turnaround time: " << avgTurnaroundTime << " ticks" << endl;
+    std::cout << "[-] Average wait time: " << (int)avgWaitTime << " ticks" << endl;
+    std::cout << "[-] Average turnaround time: " << (int)avgTurnaroundTime << " ticks" << endl;
     return 0;
 };
 
