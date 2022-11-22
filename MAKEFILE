@@ -1,1 +1,11 @@
-g++.exe -fdiagnostics-color=always -g main.cpp -o main.exe
+main: main.o framework.o queueAndProcess.o
+	g++ -o scheduler main.o framework.o queueAndProcess.o
+
+main.o: main.cpp
+	g++ -c main.cpp
+
+framework.o: framework.h
+	g++ -c framework.h
+
+queueAndProcess.o: queueAndProcess.h
+	g++ -c queueAndProcess.h

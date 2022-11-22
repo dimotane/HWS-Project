@@ -18,37 +18,45 @@ std::vector <Process> readFile(string filepath, bool hasFile){
     char tab = '\t';
     int counter;
     if (hasFile) { 
-        std::cout << "[-] Reading input file...";
-        getline(InputFile, inputline);//get rid of header line
-        getline(InputFile, inputline);//get the first line
-        do //using do while here because otherwise it skips the nextProcess line
+        try
         {
-             //for the rest of the lines in the file, we do stuff to it:
-                stringstream stream(inputline);//read in from current line
-                counter = 0;
-                while(!stream.eof()) {
-                    getline(stream, pieces[counter], tab);
-                    counter++;
-                } //this while loop parses 1 process into 6 strings
+            std::cout << "[-] Reading input file...";
+            getline(InputFile, inputline);//get rid of header line
+            getline(InputFile, inputline);//get the first line
+            do //using do while here because otherwise it skips the nextProcess line
+            {
+                    //for the rest of the lines in the file, we do stuff to it:
+                    stringstream stream(inputline);//read in from current line
+                    counter = 0;
+                    while(!stream.eof()) {
+                        getline(stream, pieces[counter], tab);
+                        counter++;
+                    } //this while loop parses 1 process into 6 strings
 
-                int pid = stoi(pieces[0]);
-                int burst = stoi(pieces[1]);
-                int arrival = stoi(pieces[2]);
-                int priority = stoi(pieces[3]);
-                int deadline = stoi(pieces[4]);
-                int io = stoi(pieces[5]); //parse strings as ints 
+                    int pid = stoi(pieces[0]);
+                    int burst = stoi(pieces[1]);
+                    int arrival = stoi(pieces[2]);
+                    int priority = stoi(pieces[3]);
+                    int deadline = stoi(pieces[4]);
+                    int io = stoi(pieces[5]); //parse strings as ints 
 
-                if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1) {
-                    continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
-                } else
-                {   //create process with data gathered
-                    Process process = Process(pid, burst, priority, arrival, io);
-                    pVector.push_back(process); //add process to the end of the vector
-                } 
-        
-        } while(getline(InputFile, inputline));
-       //that's everything for the file
-        std::cout << "Done!" << endl;
+                    if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1) {
+                        continue; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
+                    } else
+                    {   //create process with data gathered
+                        Process process = Process(pid, burst, priority, arrival, io);
+                        pVector.push_back(process); //add process to the end of the vector
+                    } 
+            
+            } while(getline(InputFile, inputline));
+            //that's everything for the file
+            std::cout << "Done!" << endl;
+        }
+        catch (...)
+        {
+            std::cout << "Invalid file!" << endl;
+            return pVector;
+        }
     }else
     {
         bool exit = false;
@@ -70,11 +78,11 @@ std::vector <Process> readFile(string filepath, bool hasFile){
                 int deadline;
                 int io;
                 std::cout << "[-] Process ID: (" << counter << ")\n";
-                cout << "[?] Enter the burst, arrival, priority, deadline, and I/O of this process with spaces in between. \n";
+                std::cout << "[?] Enter the burst, arrival, priority, deadline, and I/O of this process with spaces in between. \n";
                 cin >> burst >> arrival >> priority >> deadline >> io;
             
 
-            if (burst<1 || burst > 100 || priority <0 || priority>99 || io > burst || arrival < 1 || pid < 1 ){
+            if (burst < 1 || priority < 0 || priority > 99 || io > burst || arrival < 1 || pid < 1 ){
                 std::cout << endl << "[X] This process is invalid.\n"; //skip any processes that have weird input. no negative numbers, no deadlines before arrival, etc
             } else {
             Process process = Process(pid, burst, priority, arrival, io);
