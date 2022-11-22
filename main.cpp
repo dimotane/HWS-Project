@@ -154,6 +154,10 @@ void demote(processPtr process, Queue* queues[], int offset, int clockTick, set 
     moveProcess(process, queues, clockTick, newPriority, activeQueues);
 } 
 
+void processMsg(Queue * queue, int clockTick){
+    std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << queue->priority << "] [PID:" << queue->currentProcess->pid << "] now executing" << std::endl;
+}
+
 //promote all aged processes by 10 
 int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQueue, set <int> * activeQueues)
 {
@@ -194,7 +198,7 @@ int promoteAgedProcesses(Queue * queues[], int age, int clockTick, int activeQue
     }
     #ifdef DEBUG
     if (totalPromotions > 0) {
-    //std::cout << "[" << fixClockTick(clockTick) << "] " << totalPromotions << " processes promoted" << endl;
+    std::cout << "[" << fixClockTick(clockTick) << "] " << totalPromotions << " processes promoted" << endl;
     }
     #endif
     return 0; 
@@ -290,6 +294,11 @@ int main() {
             nextProcess = &inputProcessQueue.back();//update next process
             if (activeQueue == -1) {//if no queue was active, find the highest priority one
                 activeQueue = findHighestPriorityQueue(clockTick, activeQueues, activeQueue);
+                #ifdef DEBUG
+                if (activeQueue != -1){
+                processMsg(queues[activeQueue], clockTick);
+                }
+                #endif
             }
         }
 
@@ -300,16 +309,26 @@ int main() {
                     removeActiveQueue(activeQueue, clockTick, activeQueues);//if it was the only process, remove the queue from active
                 }
                 activeQueue = findHighestPriorityQueue(clockTick, activeQueues, activeQueue);//update highest priority queue
+                #ifdef DEBUG
+                if (activeQueue != -1){
+                processMsg(queues[activeQueue], clockTick);
+                }
+                #endif
                 completedProcesses++;//incriment processes completed
                 cpuTime = -1;//reset cpu time for next process
             }
-        }else if (activeQueue != -1)//if the process has used up its time quantum, demote it
+        } else if (activeQueue != -1)//if the process has used up its time quantum, demote it
         {   
             #ifdef DEBUG//output messages
             std::cout << "[" << fixClockTick(clockTick) << "] [QUEUE:" << fixQueue(activeQueue) << "] [PID:" << queues[activeQueue]->currentProcess->pid << "]" << " Time quantum expired, demoting" << std::endl; 
             #endif
             demote(queues[activeQueue]->currentProcess, queues, cpuTime, clockTick, setPtr);//demote the process by amount of time it has spent in the cpu
             activeQueue = findHighestPriorityQueue(clockTick, activeQueues, activeQueue);
+            #ifdef DEBUG
+            if (activeQueue != -1){
+            processMsg(queues[activeQueue], clockTick);
+            }
+            #endif
             cpuTime = -1;//set to -1 to reset to 0 once cpuTime++ occurs
             clockTick--;//clock should not incriment during demotion
         }
